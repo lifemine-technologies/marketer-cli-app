@@ -10,7 +10,10 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Card } from '@/components/ui/Card';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { UserProviderContext, AuthUserContext } from '../../../utils/contexts/authUserContext';
+import {
+  UserProviderContext,
+  AuthUserContext,
+} from '../../../utils/contexts/authUserContext';
 import { useAttendance } from '@/hooks/api/useAttendance';
 import Geolocation from '@react-native-community/geolocation';
 import { useVendors, useAllVendors } from '@/hooks/api/useVendors';
@@ -50,11 +53,12 @@ const requestLocationPermission = async (): Promise<boolean> => {
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         {
           title: 'Location Permission',
-          message: 'This app needs access to your location for attendance tracking.',
+          message:
+            'This app needs access to your location for attendance tracking.',
           buttonNeutral: 'Ask Me Later',
           buttonNegative: 'Cancel',
           buttonPositive: 'OK',
-        }
+        },
       );
       return granted === PermissionsAndroid.RESULTS.GRANTED;
     } catch (err) {
@@ -92,7 +96,9 @@ export const DashboardPage = () => {
   const stats = useMemo(() => {
     // API returns: { status: 'success', data: VendorListResponse }
     const vendorCount = vendorsQuery.data?.data?.totalDocs || 0;
-    const coordinatorCount = canViewCoordinators ? marketersQuery.data?.data?.length || 0 : 0;
+    const coordinatorCount = canViewCoordinators
+      ? marketersQuery.data?.data?.length || 0
+      : 0;
 
     const statsArray = [
       {
@@ -115,8 +121,9 @@ export const DashboardPage = () => {
   }, [vendorsQuery.data, marketersQuery.data, isAdmin, canViewCoordinators]);
 
   const filteredActions = quickActions.filter(
-    (action) =>
-      action.role === 'ALL' || (Array.isArray(action.role) && action.role.includes(userRole))
+    action =>
+      action.role === 'ALL' ||
+      (Array.isArray(action.role) && action.role.includes(userRole)),
   );
 
   const handleLogout = () => {
@@ -136,7 +143,7 @@ export const DashboardPage = () => {
           },
         },
       ],
-      { cancelable: true }
+      { cancelable: true },
     );
   };
 
@@ -146,14 +153,40 @@ export const DashboardPage = () => {
       // Request location permission
       const hasPermission = await requestLocationPermission();
       if (!hasPermission) {
-        Alert.alert('Permission Denied', 'Location permission is required for attendance.');
+        Alert.alert(
+          'Permission Denied',
+          'Location permission is required for attendance.',
+        );
         setIsGettingLocation(false);
         return;
       }
 
-      // Get current location
+      // Check if location services are enabled (Android)
+      if (Platform.OS === 'android') {
+        try {
+          const enabled = await new Promise<boolean>(resolve => {
+            Geolocation.getCurrentPosition(
+              () => resolve(true),
+              () => resolve(false),
+              { timeout: 1000, maximumAge: Infinity },
+            );
+          });
+          if (!enabled) {
+            Alert.alert(
+              'Location Services Disabled',
+              'Please enable location services in your device settings.',
+            );
+            setIsGettingLocation(false);
+            return;
+          }
+        } catch (err) {
+          // Continue anyway
+        }
+      }
+
+      // Get current location with longer timeout and better options
       Geolocation.getCurrentPosition(
-        (position) => {
+        position => {
           const coordinates: [number, number] = [
             position.coords.longitude,
             position.coords.latitude,
@@ -162,16 +195,19 @@ export const DashboardPage = () => {
           mutation.mutate(
             { location: { type: 'Point', coordinates } },
             {
-              onSuccess: (response) => {
+              onSuccess: response => {
                 setIsGettingLocation(false);
                 if (response.data.status === 'success') {
                   Alert.alert(
                     'Success',
                     response.data.message ||
-                      `${isActive ? 'Punched out' : 'Punched in'} successfully!`
+                      `${isActive ? 'Punched out' : 'Punched in'} successfully!`,
                   );
                 } else {
-                  Alert.alert('Error', response.data.message || 'Failed to update attendance.');
+                  Alert.alert(
+                    'Error',
+                    response.data.message || 'Failed to update attendance.',
+                  );
                 }
               },
               onError: (error: any) => {
@@ -182,25 +218,41 @@ export const DashboardPage = () => {
                   'Failed to update attendance.';
                 Alert.alert('Error', errorMessage);
               },
-            }
+            },
           );
         },
-        (error) => {
+        error => {
           setIsGettingLocation(false);
           console.error('Error getting location:', error);
-          Alert.alert(
-            'Error',
-            'Failed to get your location. Please ensure location services are enabled.'
-          );
+
+          let errorMessage = 'Failed to get your location. ';
+          if (error.code === 1) {
+            errorMessage +=
+              'Permission denied. Please grant location permission.';
+          } else if (error.code === 2) {
+            errorMessage +=
+              'Location unavailable. Please check your GPS settings.';
+          } else if (error.code === 3) {
+            errorMessage +=
+              'Location request timed out. Please try again in a better location.';
+          } else {
+            errorMessage += 'Please ensure location services are enabled.';
+          }
+
+          Alert.alert('Location Error', errorMessage);
         },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+        {
+          enableHighAccuracy: false, // Use false for faster response
+          timeout: 30000, // Increased to 30 seconds
+          maximumAge: 60000, // Accept location up to 1 minute old
+        },
       );
     } catch (error: any) {
       setIsGettingLocation(false);
-      console.error('Error getting location:', error);
+      console.error('Error in handlePunch:', error);
       Alert.alert(
         'Error',
-        'Failed to get your location. Please ensure location services are enabled.'
+        'Failed to get your location. Please ensure location services are enabled and try again.',
       );
     }
   };
@@ -217,7 +269,9 @@ export const DashboardPage = () => {
             </View>
 
             <View>
-              <Text className="text-xl font-bold text-white">Fatafat Service</Text>
+              <Text className="text-xl font-bold text-white">
+                Fatafat Service
+              </Text>
               <Text className="text-sm text-blue-100">{userRole}</Text>
               <Text className="text-xs text-blue-200">{userPhone}</Text>
             </View>
@@ -227,7 +281,8 @@ export const DashboardPage = () => {
           <View className="flex-row items-center gap-3">
             <TouchableOpacity
               onPress={handleLogout}
-              className="h-12 w-12 items-center justify-center rounded-xl border border-white/30 bg-white/20 active:opacity-70">
+              className="h-12 w-12 items-center justify-center rounded-xl border border-white/30 bg-white/20 active:opacity-70"
+            >
               <Ionicons name="log-out-outline" size={22} color="#ffffff" />
             </TouchableOpacity>
 
@@ -252,7 +307,9 @@ export const DashboardPage = () => {
                     <Text className="text-sm text-gray-600 dark:text-slate-400">
                       {isActive ? 'Punched in' : 'Punched out'} -{' '}
                       {new Date(
-                        isActive ? attendance.punchInTime : attendance.punchOutTime || ''
+                        isActive
+                          ? attendance.punchInTime
+                          : attendance.punchOutTime || '',
                       ).toLocaleTimeString('en-US', {
                         hour: '2-digit',
                         minute: '2-digit',
@@ -265,12 +322,17 @@ export const DashboardPage = () => {
                   disabled={isGettingLocation || mutation.isPending}
                   className={`${
                     isActive ? 'bg-red-600' : 'bg-green-600'
-                  } flex-row items-center gap-2 rounded-xl px-6 py-3 shadow-lg active:opacity-80`}>
+                  } flex-row items-center gap-2 rounded-xl px-6 py-3 shadow-lg active:opacity-80`}
+                >
                   {isGettingLocation || mutation.isPending ? (
                     <ActivityIndicator color="#ffffff" />
                   ) : (
                     <>
-                      <Ionicons name={isActive ? 'log-out-outline' : 'log-in-outline'} size={20} color="#ffffff" />
+                      <Ionicons
+                        name={isActive ? 'log-out-outline' : 'log-in-outline'}
+                        size={20}
+                        color="#ffffff"
+                      />
                       <Text className="font-semibold text-white">
                         {isActive ? 'Punch Out' : 'Punch In'}
                       </Text>
@@ -288,7 +350,8 @@ export const DashboardPage = () => {
             // Map stat to Tab route names
             let targetScreen: string | undefined;
             if (stat.label.includes('Vendors')) targetScreen = 'Vendors';
-            if (stat.label.includes('Coordinators')) targetScreen = 'Coordinators';
+            if (stat.label.includes('Coordinators'))
+              targetScreen = 'Coordinators';
 
             return (
               <TouchableOpacity
@@ -299,7 +362,8 @@ export const DashboardPage = () => {
                     navigation.navigate(targetScreen);
                   }
                 }}
-                className="min-w-[30%] flex-1 rounded-2xl border border-gray-100 bg-white p-5 shadow-lg active:scale-95 active:opacity-80 dark:border-slate-700 dark:bg-slate-800">
+                className="min-w-[30%] flex-1 rounded-2xl border border-gray-100 bg-white p-5 shadow-lg active:scale-95 active:opacity-80 dark:border-slate-700 dark:bg-slate-800"
+              >
                 <View className="mb-3 h-12 w-12 items-center justify-center rounded-xl border border-blue-200 bg-blue-100 dark:border-blue-800/40 dark:bg-blue-900/30">
                   <Ionicons name={stat.icon} size={24} color="#2563eb" />
                 </View>
@@ -320,16 +384,18 @@ export const DashboardPage = () => {
             Quick Actions
           </Text>
           <View className="flex-row flex-wrap gap-4">
-            {filteredActions.map((action) => (
+            {filteredActions.map(action => (
               <TouchableOpacity
                 key={action.title}
                 onPress={() => {
                   // @ts-ignore
                   navigation.navigate(action.screen);
                 }}
-                className="min-w-[45%] flex-1 rounded-2xl border border-gray-100 bg-white p-5 shadow-lg active:scale-95 active:opacity-80 dark:border-slate-700 dark:bg-slate-800">
+                className="min-w-[45%] flex-1 rounded-2xl border border-gray-100 bg-white p-5 shadow-lg active:scale-95 active:opacity-80 dark:border-slate-700 dark:bg-slate-800"
+              >
                 <View
-                  className={`h-14 w-14 ${action.color} mb-4 items-center justify-center rounded-2xl shadow-lg`}>
+                  className={`h-14 w-14 ${action.color} mb-4 items-center justify-center rounded-2xl shadow-lg`}
+                >
                   <Ionicons name={action.icon} size={26} color="#ffffff" />
                 </View>
                 <Text className="text-sm font-semibold text-gray-900 dark:text-slate-100">

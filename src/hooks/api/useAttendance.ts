@@ -1,6 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { userAPI, type BasicReturnWithType } from '@/config/axios';
 import { API_ENDPOINTS } from '@/config/url';
+import {
+  startBackgroundLocationTracking,
+  stopBackgroundLocationTracking,
+} from '@/services/locationTracking';
 
 type Payload = {
   location: {
@@ -14,12 +18,20 @@ export const useAttendance = () => {
 
   const punchInMutation = useMutation({
     mutationFn: (payload: Payload) =>
-      userAPI.post<BasicReturnWithType<any>>(API_ENDPOINTS.MARKETER.ATTENDANCE.PUNCH_IN, payload),
-    onSuccess: async (response) => {
+      userAPI.post<BasicReturnWithType<any>>(
+        API_ENDPOINTS.MARKETER.ATTENDANCE.PUNCH_IN,
+        payload,
+      ),
+    onSuccess: async response => {
       if (response.data.status === 'success') {
         queryClient.invalidateQueries({ queryKey: ['userDetails'] });
-        // Note: Background location tracking would be implemented here for React Native CLI
-        // For now, we'll skip it as it requires additional setup
+        // Start background location tracking
+        const started = await startBackgroundLocationTracking();
+        if (!started) {
+          console.warn(
+            'Background location could not start. Keep app open and try again.',
+          );
+        }
       }
     },
     onError: (error: any) => {
@@ -29,11 +41,15 @@ export const useAttendance = () => {
 
   const punchOutMutation = useMutation({
     mutationFn: (payload: Payload) =>
-      userAPI.post<BasicReturnWithType<any>>(API_ENDPOINTS.MARKETER.ATTENDANCE.PUNCH_OUT, payload),
-    onSuccess: async (response) => {
+      userAPI.post<BasicReturnWithType<any>>(
+        API_ENDPOINTS.MARKETER.ATTENDANCE.PUNCH_OUT,
+        payload,
+      ),
+    onSuccess: async response => {
       if (response.data.status === 'success') {
         queryClient.invalidateQueries({ queryKey: ['userDetails'] });
-        // Note: Stop background location tracking would be implemented here
+        // Stop background location tracking
+        await stopBackgroundLocationTracking();
       }
     },
     onError: (error: any) => {

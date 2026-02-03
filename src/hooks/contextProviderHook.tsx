@@ -1,14 +1,23 @@
-import React, { useState, useCallback, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useState, useCallback, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   AuthUserContext,
   UserProviderContext,
   type UserData,
-} from "../utils/contexts/authUserContext";
-import { getAccessToken, removeAccessToken, removeRefreshToken, authAPI } from "@/config/axios";
-import { userAPI, type BasicReturnWithType } from "@/config/axios";
-import { API_ENDPOINTS } from "@/config/url";
-import { convertJwkToPem } from "../utils/crypto.util";
+} from '../utils/contexts/authUserContext';
+import {
+  getAccessToken,
+  removeAccessToken,
+  removeRefreshToken,
+  authAPI,
+} from '@/config/axios';
+import { userAPI, type BasicReturnWithType } from '@/config/axios';
+import { API_ENDPOINTS } from '@/config/url';
+import { convertJwkToPem } from '../utils/crypto.util';
+import {
+  startBackgroundLocationTracking,
+  stopBackgroundLocationTracking,
+} from '@/services/locationTracking';
 
 export const AuthContextProvider = ({
   children,
@@ -21,7 +30,7 @@ export const AuthContextProvider = ({
 
   // Fetch public key from well-known endpoint (optional - may not exist)
   const { data: wellknownData, isLoading: isLoadingPublicKey } = useQuery({
-    queryKey: ["wellknownPublic"],
+    queryKey: ['wellknownPublic'],
     queryFn: async () => {
       try {
         const response = await authAPI.get<{
@@ -44,12 +53,14 @@ export const AuthContextProvider = ({
       } catch (error: any) {
         // If 404, the endpoint doesn't exist - allow app to continue without encryption
         if (error?.response?.status === 404) {
-          console.warn("Public key endpoint not found (404). Login may work without encryption.");
-          return { publicKey: "" };
+          console.warn(
+            'Public key endpoint not found (404). Login may work without encryption.',
+          );
+          return { publicKey: '' };
         }
-        console.error("Error fetching public key:", error);
+        console.error('Error fetching public key:', error);
         // Return empty public key if fetch fails (encryption will fail gracefully)
-        return { publicKey: "" };
+        return { publicKey: '' };
       }
     },
     refetchOnWindowFocus: false,
@@ -66,7 +77,7 @@ export const AuthContextProvider = ({
           setUser({ accessToken: token });
         }
       } catch (error) {
-        console.error("Error checking auth:", error);
+        console.error('Error checking auth:', error);
       } finally {
         setUserLoading(false);
       }
@@ -76,10 +87,10 @@ export const AuthContextProvider = ({
 
   // Fetch user details when token exists
   const { data: userDetailsData, isLoading: isLoadingUser } = useQuery({
-    queryKey: ["userDetails"],
+    queryKey: ['userDetails'],
     queryFn: async () => {
       const response = await userAPI.get<BasicReturnWithType<UserData>>(
-        API_ENDPOINTS.PROFILE.DETAILS
+        API_ENDPOINTS.PROFILE.DETAILS,
       );
       return response.data;
     },
@@ -109,14 +120,17 @@ export const AuthContextProvider = ({
 
   // Function to logout user
   const logout = useCallback(async () => {
+    // Stop location tracking on logout
+    await stopBackgroundLocationTracking();
     await removeAccessToken();
     await removeRefreshToken();
     setUser(null);
     setUserData(undefined);
   }, []);
 
-  const isLoading = userLoading || isLoadingPublicKey || (!!user?.accessToken && isLoadingUser);
-  const publicKey = wellknownData?.publicKey || "";
+  const isLoading =
+    userLoading || isLoadingPublicKey || (!!user?.accessToken && isLoadingUser);
+  const publicKey = wellknownData?.publicKey || '';
 
   return (
     <AuthUserContext.Provider

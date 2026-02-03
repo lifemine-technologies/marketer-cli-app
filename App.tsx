@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthContextProvider } from './src/hooks/contextProviderHook';
 import { ThemeProvider, useTheme } from './src/hooks/useTheme';
@@ -6,6 +6,7 @@ import { Router } from './src/navigation/Router';
 import { handleMutationError, handleMutationSuccess } from './src/config/axios';
 import { StatusBar, View, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { registerLocationTrackingAppStateListener } from './src/services/locationTracking';
 import './global.css';
 
 const queryClient = new QueryClient({
@@ -26,6 +27,12 @@ const queryClient = new QueryClient({
 
 const AppContent = () => {
   const { isDark } = useTheme();
+
+  // Register location tracking app state listener
+  useEffect(() => {
+    const removeListener = registerLocationTrackingAppStateListener();
+    return removeListener;
+  }, []);
 
   return (
     <View className={isDark ? 'dark' : ''} style={styles.root}>
