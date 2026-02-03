@@ -3,23 +3,21 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MainStackParamList, TabParamList } from './types';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import { UserProviderContext } from '../utils/contexts/authUserContext';
 import { DashboardPage } from '../pages/user/dashboard/DashboardPage';
 import { MyVendorsListPage } from '../pages/user/vendor/MyVendorsListPage';
-import { AllMarketersPage } from '../pages/user/marketers/AllMarketersPage';
-import { ViewVendorPage } from '../pages/user/vendor/ViewVendorPage';
 import { NewVendorPage } from '../pages/user/vendor/newVendor/NewVendorPage';
-import { AddMarketerPage } from '../pages/user/marketers/AddMarketerPage';
+import { ViewVendorPage } from '../pages/user/vendor/ViewVendorPage';
+import { AllMarketersPage } from '../pages/user/marketers/AllMarketersPage';
 import { ViewMarketerPage } from '../pages/user/marketers/viewMarketer/ViewMarketerPage';
-import { View, Text } from 'react-native';
+import { AddMarketerPage } from '../pages/user/marketers/AddMarketerPage';
+import { AddFollowUpPage } from '../pages/user/vendor/AddFollowUpPage';
+import { MapPickerPage } from '../pages/user/vendor/MapPickerPage';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { UserProviderContext } from '../utils/contexts/authUserContext';
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 
-// Placeholder components - will be replaced when pages are created
-
-// Bottom Tab Navigator - Dynamic based on user role
 const MainTabs = () => {
   const user = useContext(UserProviderContext);
   const userRole = user?.role || 'COORDINATOR';
@@ -51,13 +49,18 @@ const MainTabs = () => {
           fontWeight: '600',
           marginTop: 4,
         },
-      }}>
+      }}
+    >
       <Tab.Screen
         name="Home"
         component={DashboardPage}
         options={{
           tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons name={focused ? 'home' : 'home-outline'} size={size || 24} color={color} />
+            <Ionicons
+              name={focused ? 'home' : 'home-outline'}
+              size={size || 24}
+              color={color}
+            />
           ),
           tabBarLabel: 'Home',
         }}
@@ -109,13 +112,27 @@ export const ProtectedRoute = () => {
           fontWeight: 'bold',
           fontSize: 18,
         },
-        headerBackTitleVisible: false,
-      }}>
-      <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
-      <Stack.Screen name="ViewVendor" component={ViewVendorPage} />
+      }}
+    >
+      <Stack.Screen
+        name="MainTabs"
+        component={MainTabs}
+        options={{ headerShown: false }}
+      />
       <Stack.Screen name="NewVendor" component={NewVendorPage} />
-      <Stack.Screen name="AddMarketer" component={AddMarketerPage} />
+      <Stack.Screen name="ViewVendor" component={ViewVendorPage} />
       <Stack.Screen name="ViewMarketer" component={ViewMarketerPage} />
+      <Stack.Screen name="AddMarketer" component={AddMarketerPage} />
+      <Stack.Screen
+        name="MapPicker"
+        component={MapPickerPage}
+        options={{ title: 'Pick location' }}
+      />
+      <Stack.Screen
+        name="AddFollowUp"
+        component={AddFollowUpPage}
+        options={{ title: 'Add Follow-up' }}
+      />
     </Stack.Navigator>
   );
 };
@@ -138,6 +155,7 @@ export const useUserPermissions = () => {
     isCoordinator: userRole === 'COORDINATOR',
     isTelecaller: userRole === 'TELECALLER',
     userRole,
-    can: (requiredRole: string) => hierarchyRoles[userRole] >= hierarchyRoles[requiredRole],
+    can: (requiredRole: string) =>
+      hierarchyRoles[userRole] >= hierarchyRoles[requiredRole],
   };
 };

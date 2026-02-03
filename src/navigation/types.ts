@@ -25,6 +25,7 @@ export type MainStackParamList = {
   ViewMarketer: { id: string };
   AddMarketer: undefined;
   AddFollowUp: { vendorId: string };
+  MapPicker: { initialLat?: number; initialLng?: number } | undefined;
   Calendar: undefined;
   Settings: undefined;
 };

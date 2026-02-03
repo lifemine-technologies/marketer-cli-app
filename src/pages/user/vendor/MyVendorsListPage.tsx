@@ -1,5 +1,11 @@
 import React, { useState, useMemo, useContext } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
@@ -12,7 +18,8 @@ export const MyVendorsListPage = ({ is }: { is?: 'ADMIN' | 'VENDOR' }) => {
   const user = useContext(UserProviderContext);
   const userRole = user?.role || 'COORDINATOR';
   // Determine if this is admin view - either passed as prop or check user role
-  const isAdminView = is === 'ADMIN' || (is === undefined && userRole === 'ADMIN');
+  const isAdminView =
+    is === 'ADMIN' || (is === undefined && userRole === 'ADMIN');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
@@ -37,20 +44,7 @@ export const MyVendorsListPage = ({ is }: { is?: 'ADMIN' | 'VENDOR' }) => {
   const { data, isLoading, isError, error, refetch } = vendorsQuery;
 
   const vendors = useMemo(() => {
-    // API returns: { status: 'success', data: VendorListResponse }
-    // So we need: data.data.results
-    if (__DEV__) {
-      console.log('Vendors Query Data:', JSON.stringify(data, null, 2));
-    }
     if (!data?.data?.results) {
-      if (__DEV__) {
-        console.log('No vendors found. Data structure:', {
-          hasData: !!data,
-          hasDataData: !!data?.data,
-          hasResults: !!data?.data?.results,
-          dataStatus: data?.status,
-        });
-      }
       return [];
     }
     return data.data.results;
@@ -82,7 +76,8 @@ export const MyVendorsListPage = ({ is }: { is?: 'ADMIN' | 'VENDOR' }) => {
         </Text>
         <TouchableOpacity
           onPress={() => refetch()}
-          className="mt-4 rounded-xl bg-blue-600 px-6 py-3">
+          className="mt-4 rounded-xl bg-blue-600 px-6 py-3"
+        >
           <Text className="font-semibold text-white">Retry</Text>
         </TouchableOpacity>
       </View>
@@ -99,7 +94,9 @@ export const MyVendorsListPage = ({ is }: { is?: 'ADMIN' | 'VENDOR' }) => {
               {isAdminView ? 'All Vendors' : 'My Vendors'}
             </Text>
             <Text className="text-sm text-blue-100">
-              {isAdminView ? 'View all vendors and their details' : 'Manage your vendor list'}
+              {isAdminView
+                ? 'View all vendors and their details'
+                : 'Manage your vendor list'}
             </Text>
           </View>
           {!isAdminView && (
@@ -108,7 +105,8 @@ export const MyVendorsListPage = ({ is }: { is?: 'ADMIN' | 'VENDOR' }) => {
                 // @ts-ignore
                 navigation.navigate('NewVendor');
               }}
-              className="flex-row items-center gap-1.5 rounded-xl bg-white px-5 py-2.5 shadow-lg active:scale-95 active:opacity-90">
+              className="flex-row items-center gap-1.5 rounded-xl bg-white px-5 py-2.5 shadow-lg active:scale-95 active:opacity-90"
+            >
               <Ionicons name="add-outline" size={18} color="#2563eb" />
               <Text className="text-sm font-semibold text-blue-600">Add</Text>
             </TouchableOpacity>
@@ -138,19 +136,24 @@ export const MyVendorsListPage = ({ is }: { is?: 'ADMIN' | 'VENDOR' }) => {
           </View>
         ) : (
           <View className="space-y-4">
-            {vendors.map((vendor) => (
+            {vendors.map(vendor => (
               <TouchableOpacity
                 key={vendor._id}
                 onPress={() => {
                   // @ts-ignore
                   navigation.navigate('ViewVendor', { id: vendor._id });
                 }}
-                className="mb-2 rounded-2xl border border-gray-100 bg-white p-5 shadow-lg active:scale-[0.98] active:opacity-80 dark:border-slate-700 dark:bg-slate-800">
+                className="mb-2 rounded-2xl border border-gray-100 bg-white p-5 shadow-lg active:scale-[0.98] active:opacity-80 dark:border-slate-700 dark:bg-slate-800"
+              >
                 <View className="mb-4 flex-row items-start justify-between">
                   <View className="flex-1 pr-2">
                     <View className="mb-2 flex-row items-center gap-2">
                       <View className="h-10 w-10 items-center justify-center rounded-xl border border-blue-200 bg-blue-100 dark:border-blue-800/40 dark:bg-blue-900/30">
-                        <Ionicons name="storefront-outline" size={20} color="#2563eb" />
+                        <Ionicons
+                          name="storefront-outline"
+                          size={20}
+                          color="#2563eb"
+                        />
                       </View>
                       <View className="flex-1">
                         <Text className="text-lg font-bold text-gray-900 dark:text-slate-100">
@@ -171,7 +174,8 @@ export const MyVendorsListPage = ({ is }: { is?: 'ADMIN' | 'VENDOR' }) => {
                         vendor.status === 'NEW'
                           ? 'bg-green-500 dark:bg-green-600'
                           : 'bg-blue-500 dark:bg-blue-600'
-                      }>
+                      }
+                    >
                       {vendor.status}
                     </Badge>
 
@@ -182,7 +186,8 @@ export const MyVendorsListPage = ({ is }: { is?: 'ADMIN' | 'VENDOR' }) => {
                           : vendor.priority === 'MEDIUM'
                             ? 'text-yellow-600'
                             : 'text-gray-500'
-                      }`}>
+                      }`}
+                    >
                       {vendor.priority} PRIORITY
                     </Text>
                   </View>
@@ -190,7 +195,12 @@ export const MyVendorsListPage = ({ is }: { is?: 'ADMIN' | 'VENDOR' }) => {
 
                 <View className="space-y-3 border-t border-gray-100 pt-4 dark:border-slate-700">
                   <View className="flex-row items-start gap-2 rounded-lg border border-blue-100 bg-blue-50 p-3 dark:border-blue-800/30 dark:bg-blue-900/20">
-                    <Ionicons name="location-outline" size={16} color="#2563eb" style={{ marginTop: 1 }} />
+                    <Ionicons
+                      name="location-outline"
+                      size={16}
+                      color="#2563eb"
+                      style={{ marginTop: 1 }}
+                    />
                     <Text className="flex-1 text-xs leading-4 text-gray-700 dark:text-slate-300">
                       {vendor.address?.line1 || 'Address not available'}
                     </Text>
@@ -199,16 +209,21 @@ export const MyVendorsListPage = ({ is }: { is?: 'ADMIN' | 'VENDOR' }) => {
                   {vendor.servicePlaces?.length > 0 && (
                     <View className="mt-2 flex-row flex-wrap items-center gap-2">
                       <View className="flex-row items-center gap-1.5">
-                        <Ionicons name="globe-outline" size={12} color="#6b7280" />
+                        <Ionicons
+                          name="globe-outline"
+                          size={12}
+                          color="#6b7280"
+                        />
                         <Text className="text-xs font-semibold text-gray-600 dark:text-slate-400">
                           Places:
                         </Text>
                       </View>
 
-                      {vendor.servicePlaces.slice(0, 3).map((place) => (
+                      {vendor.servicePlaces.slice(0, 3).map(place => (
                         <View
                           key={place}
-                          className="rounded-lg border border-gray-200 bg-gray-100 px-3 py-1.5 dark:border-slate-600 dark:bg-slate-700">
+                          className="rounded-lg border border-gray-200 bg-gray-100 px-3 py-1.5 dark:border-slate-600 dark:bg-slate-700"
+                        >
                           <Text className="text-xs font-medium text-gray-700 dark:text-slate-300">
                             {place}
                           </Text>
@@ -220,21 +235,28 @@ export const MyVendorsListPage = ({ is }: { is?: 'ADMIN' | 'VENDOR' }) => {
                   {vendor.serviceSpeciality?.brands?.length > 0 && (
                     <View className="mt-2 flex-row flex-wrap items-center gap-2">
                       <View className="flex-row items-center gap-1.5">
-                        <Ionicons name="pricetag-outline" size={12} color="#6b7280" />
+                        <Ionicons
+                          name="pricetag-outline"
+                          size={12}
+                          color="#6b7280"
+                        />
                         <Text className="text-xs font-semibold text-gray-600 dark:text-slate-400">
                           Brands:
                         </Text>
                       </View>
 
-                      {vendor.serviceSpeciality.brands.slice(0, 3).map((brand) => (
-                        <View
-                          key={brand}
-                          className="rounded-lg border border-blue-300 bg-blue-100 px-3 py-1.5 dark:border-blue-700/50 dark:bg-blue-900/40">
-                          <Text className="text-xs font-semibold text-blue-700 dark:text-blue-300">
-                            {brand}
-                          </Text>
-                        </View>
-                      ))}
+                      {vendor.serviceSpeciality.brands
+                        .slice(0, 3)
+                        .map(brand => (
+                          <View
+                            key={brand}
+                            className="rounded-lg border border-blue-300 bg-blue-100 px-3 py-1.5 dark:border-blue-700/50 dark:bg-blue-900/40"
+                          >
+                            <Text className="text-xs font-semibold text-blue-700 dark:text-blue-300">
+                              {brand}
+                            </Text>
+                          </View>
+                        ))}
                     </View>
                   )}
                 </View>
@@ -265,13 +287,19 @@ export const MyVendorsListPage = ({ is }: { is?: 'ADMIN' | 'VENDOR' }) => {
             {/* Previous */}
             <TouchableOpacity
               disabled={!hasPrevPage || isLoading}
-              onPress={() => hasPrevPage && setPage((p) => p - 1)}
+              onPress={() => hasPrevPage && setPage(p => p - 1)}
               className={`flex-row items-center gap-1 rounded-lg px-3 py-2 ${
                 hasPrevPage ? 'bg-blue-600' : 'bg-gray-200 dark:bg-slate-700'
-              }`}>
-              <Ionicons name="chevron-back-outline" size={18} color={hasPrevPage ? '#ffffff' : '#9ca3af'} />
+              }`}
+            >
+              <Ionicons
+                name="chevron-back-outline"
+                size={18}
+                color={hasPrevPage ? '#ffffff' : '#9ca3af'}
+              />
               <Text
-                className={`text-sm font-semibold ${hasPrevPage ? 'text-white' : 'text-gray-400'}`}>
+                className={`text-sm font-semibold ${hasPrevPage ? 'text-white' : 'text-gray-400'}`}
+              >
                 Prev
               </Text>
             </TouchableOpacity>
@@ -284,12 +312,14 @@ export const MyVendorsListPage = ({ is }: { is?: 'ADMIN' | 'VENDOR' }) => {
             {/* Next */}
             <TouchableOpacity
               disabled={!hasNextPage || isLoading}
-              onPress={() => hasNextPage && setPage((p) => p + 1)}
+              onPress={() => hasNextPage && setPage(p => p + 1)}
               className={`flex-row items-center gap-1 rounded-lg px-3 py-2 ${
                 hasNextPage ? 'bg-blue-600' : 'bg-gray-200 dark:bg-slate-700'
-              }`}>
+              }`}
+            >
               <Text
-                className={`text-sm font-semibold ${hasNextPage ? 'text-white' : 'text-gray-400'}`}>
+                className={`text-sm font-semibold ${hasNextPage ? 'text-white' : 'text-gray-400'}`}
+              >
                 Next
               </Text>
               <Ionicons

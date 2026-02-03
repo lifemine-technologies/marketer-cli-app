@@ -1,12 +1,11 @@
 // API Configuration
-// Note: Set EXPO_PUBLIC_IDP_BASE_URL and EXPO_PUBLIC_API_BASE_URL environment variables
-// Available environments:
-// - Dev: IDP=https://dev-idp.fatafatservice.com, API=https://mark-api-dev.lifemine.io
-// - Local: IDP=http://192.168.50.219:7008, API=http://192.168.50.219:9007
-// - Trial: https://trial-api.fatafatservice.com
+// Set EXPO_PUBLIC_IDP_BASE_URL and EXPO_PUBLIC_API_BASE_URL in .env (babel-plugin-inline-dotenv).
+// Fallbacks used if .env is not loaded so app doesn't get "Network error" from undefined baseURL.
+// - Dev: https://dev-idp.fatafatservice.com, https://mark-api-dev.lifemine.io
+// - Local: http://192.168.50.219:7008, http://192.168.50.219:9007
 export const API_CONFIG = {
-  IDP_BASE_URL: process.env.EXPO_PUBLIC_IDP_BASE_URL || 'https://dev-idp.fatafatservice.com',
-  BASE_URL: process.env.EXPO_PUBLIC_API_BASE_URL || 'https://mark-api-dev.lifemine.io',
+  IDP_BASE_URL: process.env.EXPO_PUBLIC_IDP_BASE_URL,
+  BASE_URL: process.env.EXPO_PUBLIC_API_BASE_URL,
   TIMEOUT: 30000,
 } as const;
 
@@ -73,11 +72,11 @@ export const API_ENDPOINTS = {
 } as const;
 
 // Log API configuration on startup (for debugging)
-if (__DEV__) {
-  console.log('API Configuration:', {
-    IDP_BASE_URL: API_CONFIG.IDP_BASE_URL,
-    BASE_URL: API_CONFIG.BASE_URL,
-    hasEnvIDP: !!process.env.EXPO_PUBLIC_IDP_BASE_URL,
-    hasEnvAPI: !!process.env.EXPO_PUBLIC_API_BASE_URL,
-  });
-}
+// if (__DEV__) {
+//   console.log('API Configuration:', {
+//     IDP_BASE_URL: API_CONFIG.IDP_BASE_URL,
+//     BASE_URL: API_CONFIG.BASE_URL,
+//     hasEnvIDP: !!process.env.EXPO_PUBLIC_IDP_BASE_URL,
+//     hasEnvAPI: !!process.env.EXPO_PUBLIC_API_BASE_URL,
+//   });
+// }

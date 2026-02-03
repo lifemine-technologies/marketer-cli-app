@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity, Platform } from 'react-native';
 import { Controller } from 'react-hook-form';
 import { Input } from '@/components/ui/Input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useState } from 'react';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -23,13 +24,15 @@ export const FollowUp = ({
   removeFollowUp,
   followUpFields,
 }: FollowUpProps) => {
-  const [showDatePickerIndex, setShowDatePickerIndex] = useState<number | null>(null);
+  const [showDatePickerIndex, setShowDatePickerIndex] = useState<number | null>(
+    null,
+  );
 
   const handleDateChange = (
     index: number,
     onChange: (val: string) => void,
-    event: any,
-    selectedDate?: Date
+    _event: unknown,
+    selectedDate?: Date,
   ) => {
     setShowDatePickerIndex(null);
     if (selectedDate) {
@@ -38,89 +41,129 @@ export const FollowUp = ({
     }
   };
 
+  const handleAddFollowUp = () => {
+    const today = new Date().toISOString().split('T')[0];
+    appendFollowUp({ date: today, note: '' });
+  };
+
   return (
-    <View className="mb-2 space-y-4 pt-2">
-      <View className="mb-2 flex-row items-center justify-between">
-        <View className="flex-row items-center gap-2">
-          <Ionicons name="calendar" size={20} color="#2563eb" />
-          <Text className="text-lg font-bold text-gray-900 dark:text-slate-100">Follow Ups</Text>
-        </View>
-        <TouchableOpacity
-          onPress={() => appendFollowUp({ date: '', note: '' })}
-          className="rounded-lg border border-blue-600 bg-blue-600 px-3 py-1.5">
-          <Text className="text-xs font-semibold text-white">Add</Text>
-        </TouchableOpacity>
-      </View>
-
-      {followUpFields.map((field, index) => (
-        <View
-          key={field.id}
-          className="mb-3 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-slate-700 dark:bg-slate-800">
-          <View className="mb-2">
-            <Text className="mb-1 text-xs font-semibold text-gray-700 dark:text-slate-300">
-              Date
-            </Text>
-            <Controller
-              control={control}
-              name={`followUps.${index}.date`}
-              render={({ field: { value, onChange } }) => (
-                <>
-                  <TouchableOpacity
-                    onPress={() => setShowDatePickerIndex(index)}
-                    className="rounded-md border border-gray-300 bg-white px-3 py-2 dark:border-slate-600 dark:bg-slate-700">
-                    <Text className="text-gray-900 dark:text-slate-100">
-                      {value || 'Select date'}
-                    </Text>
-                  </TouchableOpacity>
-
-                  {showDatePickerIndex === index && (
-                    <DateTimePicker
-                      value={value ? new Date(value) : new Date()}
-                      mode="date"
-                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                      onChange={(event, selectedDate) =>
-                        handleDateChange(index, onChange, event, selectedDate)
-                      }
-                    />
-                  )}
-                  {errors.followUps?.[index]?.date && (
-                    <Text className="text-sm text-red-600 dark:text-red-400">
-                      {errors.followUps[index].date.message}
-                    </Text>
-                  )}
-                </>
-              )}
-            />
+    <Card className="mb-2">
+      <CardHeader>
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center gap-2">
+            <View className="h-9 w-9 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/30">
+              <Ionicons name="calendar-outline" size={18} color="#2563eb" />
+            </View>
+            <CardTitle>Follow-ups</CardTitle>
           </View>
-
-          <View className="mb-2">
-            <Text className="mb-1 text-xs font-semibold text-gray-700 dark:text-slate-300">
-              Note
-            </Text>
-            <Controller
-              control={control}
-              name={`followUps.${index}.note`}
-              render={({ field: { value, onChange } }) => (
-                <Input
-                  value={value}
-                  onChangeText={onChange}
-                  placeholder="Enter follow-up note"
-                  multiline
-                  numberOfLines={3}
-                  className="min-h-[80px]"
-                  error={errors.followUps?.[index]?.note?.message}
-                />
-              )}
-            />
-          </View>
-
           <TouchableOpacity
-            onPress={() => removeFollowUp(index)}
-            className="mt-2 self-end rounded-lg bg-red-600 px-3 py-1.5">
-            <Text className="text-xs font-semibold text-white">Remove</Text>
+            onPress={handleAddFollowUp}
+            className="rounded-xl bg-blue-600 px-4 py-2"
+          >
+            <Text className="text-sm font-semibold text-white">
+              Add Follow-up
+            </Text>
           </TouchableOpacity>
         </View>
-      ))}
-    </View>
+      </CardHeader>
+      <CardContent>
+        {followUpFields.length === 0 ? (
+          <Text className="text-gray-500 dark:text-slate-400">
+            No follow-ups yet
+          </Text>
+        ) : (
+          <View className="space-y-4">
+            {followUpFields.map((field, index) => (
+              <View
+                key={field.id}
+                className="border-b border-gray-100 pb-4 last:border-0 dark:border-slate-700"
+              >
+                <View className="flex-row items-start gap-3">
+                  <View className="h-10 w-10 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/40">
+                    <Ionicons name="time-outline" size={18} color="#2563eb" />
+                  </View>
+                  <View className="flex-1">
+                    <View className="mb-2">
+                      <Text className="mb-1 text-xs font-semibold text-gray-700 dark:text-slate-300">
+                        Date
+                      </Text>
+                      <Controller
+                        control={control}
+                        name={`followUps.${index}.date`}
+                        render={({ field: { value, onChange } }) => (
+                          <>
+                            <TouchableOpacity
+                              onPress={() => setShowDatePickerIndex(index)}
+                              className="rounded-xl border border-gray-200 bg-white px-4 py-3 dark:border-slate-600 dark:bg-slate-800"
+                            >
+                              <Text className="text-gray-900 dark:text-slate-100">
+                                {value || 'Select date'}
+                              </Text>
+                            </TouchableOpacity>
+
+                            {showDatePickerIndex === index && (
+                              <DateTimePicker
+                                value={value ? new Date(value) : new Date()}
+                                mode="date"
+                                display={
+                                  Platform.OS === 'ios' ? 'spinner' : 'default'
+                                }
+                                onChange={(event, selectedDate) =>
+                                  handleDateChange(
+                                    index,
+                                    onChange,
+                                    event,
+                                    selectedDate,
+                                  )
+                                }
+                              />
+                            )}
+                            {errors.followUps?.[index]?.date && (
+                              <Text className="mt-1 text-sm text-red-600 dark:text-red-400">
+                                {errors.followUps[index].date.message}
+                              </Text>
+                            )}
+                          </>
+                        )}
+                      />
+                    </View>
+
+                    <View className="mb-2">
+                      <Text className="mb-1 text-xs font-semibold text-gray-700 dark:text-slate-300">
+                        Note
+                      </Text>
+                      <Controller
+                        control={control}
+                        name={`followUps.${index}.note`}
+                        render={({ field: { value, onChange } }) => (
+                          <Input
+                            value={value}
+                            onChangeText={onChange}
+                            placeholder="Enter follow-up note"
+                            multiline
+                            numberOfLines={3}
+                            className="min-h-[80px]"
+                            error={errors.followUps?.[index]?.note?.message}
+                          />
+                        )}
+                      />
+                    </View>
+
+                    <TouchableOpacity
+                      onPress={() => removeFollowUp(index)}
+                      className="mt-2 self-end rounded-lg bg-red-600 px-3 py-1.5"
+                    >
+                      <Text className="text-xs font-semibold text-white">
+                        Remove
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </CardContent>
+    </Card>
   );
 };

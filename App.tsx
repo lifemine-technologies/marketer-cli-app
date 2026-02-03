@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthContextProvider } from './src/hooks/contextProviderHook';
 import { ThemeProvider, useTheme } from './src/hooks/useTheme';

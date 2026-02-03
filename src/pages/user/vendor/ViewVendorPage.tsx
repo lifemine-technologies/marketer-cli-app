@@ -1,18 +1,64 @@
 import React from 'react';
-import { View, Text, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  ActivityIndicator,
+  TouchableOpacity,
+} from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useVendor } from '@/hooks/api/useVendors';
+import type { MainStackParamList } from '@/navigation/types';
+
+type ViewVendorNavigation = NativeStackNavigationProp<
+  MainStackParamList,
+  'ViewVendor'
+>;
 
 export const ViewVendorPage = () => {
   const route = useRoute();
-  const navigation = useNavigation();
+  const navigation = useNavigation<ViewVendorNavigation>();
   const { id } = route.params as { id: string };
   const { data, isLoading, isError, error } = useVendor(id);
 
-  const vendor = data?.data;
+  // Extract vendor from API response structure: { status: 'success', data: Vendor }
+  const vendor = React.useMemo(() => {
+    if (!data) return null;
+
+    // Case 1: API returns { status: 'success', data: Vendor }
+    if (data && typeof data === 'object' && 'data' in data && data.data) {
+      const vendorData = data.data;
+      if (
+        vendorData &&
+        typeof vendorData === 'object' &&
+        vendorData !== null &&
+        'name' in vendorData &&
+        '_id' in vendorData
+      ) {
+        return vendorData;
+      }
+    }
+
+    // Case 2: Data itself is the vendor object (not wrapped)
+    if (
+      data &&
+      typeof data === 'object' &&
+      data !== null &&
+      'name' in data &&
+      '_id' in data
+    ) {
+      // Make sure it's not the wrapper object with status/message
+      if (!('status' in data && typeof (data as any).status === 'string')) {
+        return data;
+      }
+    }
+
+    return null;
+  }, [data]);
 
   if (isLoading) {
     return (
@@ -42,123 +88,145 @@ export const ViewVendorPage = () => {
   return (
     <ScrollView className="flex-1 bg-gray-50 dark:bg-slate-900">
       <View className="space-y-4 px-4 py-6">
-        {/* Header Card */}
+        {/* Header Card - Blue Box */}
         <View className="mb-2 rounded-2xl bg-blue-600 p-6 shadow-lg dark:bg-blue-700">
           <View className="mb-4 flex-row items-center justify-between">
             <View className="flex-1 flex-row items-center gap-3">
               <View className="h-12 w-12 items-center justify-center rounded-xl border border-white/30 bg-white/20">
                 <Ionicons name="storefront-outline" size={24} color="#ffffff" />
               </View>
-              <Text className="text-2xl font-bold text-white">{vendor.name}</Text>
+              <Text className="text-2xl font-bold text-white">
+                {vendor.name || 'N/A'}
+              </Text>
             </View>
-            <Badge variant="secondary">{vendor.status}</Badge>
+            {vendor.status && (
+              <Badge variant="secondary">{vendor.status}</Badge>
+            )}
           </View>
-          <View className="flex-row items-center gap-2 rounded-xl border border-white/30 bg-white/20 px-4 py-3">
-            <Ionicons name="call-outline" size={18} color="#ffffff" />
-            <Text className="text-base font-semibold text-white">{vendor.phone}</Text>
-          </View>
+          {vendor.phone && (
+            <View className="flex-row items-center gap-2 rounded-xl border border-white/30 bg-white/20 px-4 py-3">
+              <Ionicons name="call-outline" size={18} color="#ffffff" />
+              <Text className="text-base font-semibold text-white">
+                {vendor.phone}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Address Card */}
-        <Card className="mb-2">
-          <CardHeader>
-            <View className="flex-row items-center gap-2">
-              <View className="h-9 w-9 items-center justify-center rounded-xl bg-blue-100 shadow-sm dark:bg-blue-900/30">
-                <Ionicons name="location-outline" size={18} color="#2563eb" />
+        {vendor.address && (
+          <Card className="mb-2">
+            <CardHeader>
+              <View className="flex-row items-center gap-2">
+                <View className="h-9 w-9 items-center justify-center rounded-xl bg-blue-100 shadow-sm dark:bg-blue-900/30">
+                  <Ionicons name="location-outline" size={18} color="#2563eb" />
+                </View>
+                <CardTitle>Address</CardTitle>
               </View>
-              <CardTitle>Address</CardTitle>
-            </View>
-          </CardHeader>
-          <CardContent>
-            <Text className="text-gray-900 dark:text-slate-100">
-              {vendor.address?.line1 || 'N/A'}
-            </Text>
-            {vendor.address?.line2 && (
-              <Text className="text-gray-900 dark:text-slate-100">{vendor.address.line2}</Text>
-            )}
-            {vendor.address?.code && (
-              <Text className="text-gray-600 dark:text-slate-400">
-                Pincode: {vendor.address.code}
+            </CardHeader>
+            <CardContent>
+              <Text className="text-gray-900 dark:text-slate-100">
+                {vendor.address?.line1 || 'N/A'}
               </Text>
-            )}
-            {vendor.address?.city && (
-              <Text className="text-gray-600 dark:text-slate-400">City: {vendor.address.city}</Text>
-            )}
-            {vendor.address?.state && (
-              <Text className="text-gray-600 dark:text-slate-400">
-                State: {vendor.address.state}
-              </Text>
-            )}
-            {vendor.address?.country && (
-              <Text className="text-gray-600 dark:text-slate-400">
-                Country: {vendor.address.country}
-              </Text>
-            )}
-          </CardContent>
-        </Card>
+              {vendor.address?.line2 && (
+                <Text className="text-gray-900 dark:text-slate-100">
+                  {vendor.address.line2}
+                </Text>
+              )}
+              {vendor.address?.code && (
+                <Text className="text-gray-600 dark:text-slate-400">
+                  Pincode: {vendor.address.code}
+                </Text>
+              )}
+              {vendor.address?.city && (
+                <Text className="text-gray-600 dark:text-slate-400">
+                  City: {vendor.address.city}
+                </Text>
+              )}
+              {vendor.address?.state && (
+                <Text className="text-gray-600 dark:text-slate-400">
+                  State: {vendor.address.state}
+                </Text>
+              )}
+              {vendor.address?.country && (
+                <Text className="text-gray-600 dark:text-slate-400">
+                  Country: {vendor.address.country}
+                </Text>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Service Places */}
-        <Card className="mb-2">
-          <CardHeader>
-            <View className="flex-row items-center gap-2">
-              <View className="h-9 w-9 items-center justify-center rounded-xl bg-blue-100 shadow-sm dark:bg-blue-900/30">
-                <Ionicons name="globe-outline" size={18} color="#2563eb" />
+        {vendor.servicePlaces && vendor.servicePlaces.length > 0 && (
+          <Card className="mb-2">
+            <CardHeader>
+              <View className="flex-row items-center gap-2">
+                <View className="h-9 w-9 items-center justify-center rounded-xl bg-blue-100 shadow-sm dark:bg-blue-900/30">
+                  <Ionicons name="globe-outline" size={18} color="#2563eb" />
+                </View>
+                <CardTitle>Service Places</CardTitle>
               </View>
-              <CardTitle>Service Places</CardTitle>
-            </View>
-          </CardHeader>
-          <CardContent>
-            <View className="flex-row flex-wrap gap-2">
-              {vendor.servicePlaces?.length ? (
-                vendor.servicePlaces.map((place) => (
+            </CardHeader>
+            <CardContent>
+              <View className="flex-row flex-wrap gap-2">
+                {vendor.servicePlaces.map((place: string) => (
                   <Badge key={place} variant="secondary">
                     {place}
                   </Badge>
-                ))
-              ) : (
-                <Text className="text-gray-500 dark:text-slate-400">No service places</Text>
-              )}
-            </View>
-          </CardContent>
-        </Card>
+                ))}
+              </View>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Brands & Services */}
-        <Card className="mb-2">
-          <CardHeader>
-            <View className="flex-row items-center gap-2">
-              <View className="h-9 w-9 items-center justify-center rounded-xl bg-blue-100 shadow-sm dark:bg-blue-900/30">
-                <Ionicons name="pricetag-outline" size={18} color="#2563eb" />
-              </View>
-              <CardTitle>Brands</CardTitle>
-            </View>
-          </CardHeader>
-          <CardContent>
-            <View className="flex-row flex-wrap gap-2">
-              {vendor.serviceSpeciality?.brands?.length ? (
-                vendor.serviceSpeciality.brands.map((brand) => (
-                  <Badge key={brand} variant="outline">
-                    {brand}
-                  </Badge>
-                ))
-              ) : (
-                <Text className="text-gray-500 dark:text-slate-400">No brands</Text>
-              )}
-            </View>
-
-            {vendor.serviceSpeciality?.servicesOffered?.length > 0 && (
-              <View className="mt-2">
-                <Text className="mb-1 text-gray-500 dark:text-slate-400">Services Offered</Text>
-                <View className="flex-row flex-wrap gap-2">
-                  {vendor.serviceSpeciality.servicesOffered.map((service) => (
-                    <Badge key={service} variant="default">
-                      {service}
-                    </Badge>
-                  ))}
+        {(vendor.serviceSpeciality?.brands?.length ||
+          vendor.serviceSpeciality?.servicesOffered?.length) && (
+          <Card className="mb-2">
+            <CardHeader>
+              <View className="flex-row items-center gap-2">
+                <View className="h-9 w-9 items-center justify-center rounded-xl bg-blue-100 shadow-sm dark:bg-blue-900/30">
+                  <Ionicons name="pricetag-outline" size={18} color="#2563eb" />
                 </View>
+                <CardTitle>Brands & Services</CardTitle>
               </View>
-            )}
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              {vendor.serviceSpeciality?.brands?.length > 0 && (
+                <View className="mb-4">
+                  <Text className="mb-2 text-sm font-semibold text-gray-700 dark:text-slate-300">
+                    Brands
+                  </Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {vendor.serviceSpeciality.brands.map((brand: string) => (
+                      <Badge key={brand} variant="outline">
+                        {brand}
+                      </Badge>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {vendor.serviceSpeciality?.servicesOffered?.length > 0 && (
+                <View>
+                  <Text className="mb-2 text-sm font-semibold text-gray-700 dark:text-slate-300">
+                    Services Offered
+                  </Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {vendor.serviceSpeciality.servicesOffered.map(
+                      (service: string) => (
+                        <Badge key={service} variant="default">
+                          {service}
+                        </Badge>
+                      ),
+                    )}
+                  </View>
+                </View>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Operating Hours */}
         {vendor.timeSetUp && (
@@ -173,7 +241,8 @@ export const ViewVendorPage = () => {
             </CardHeader>
             <CardContent>
               <Text className="text-gray-900 dark:text-slate-100">
-                {vendor.timeSetUp.businessStartTime} - {vendor.timeSetUp.businessEndTime}
+                {vendor.timeSetUp.businessStartTime} -{' '}
+                {vendor.timeSetUp.businessEndTime}
               </Text>
             </CardContent>
           </Card>
@@ -184,7 +253,11 @@ export const ViewVendorPage = () => {
           <CardHeader>
             <View className="flex-row items-center gap-2">
               <View className="h-9 w-9 items-center justify-center rounded-xl bg-blue-100 shadow-sm dark:bg-blue-900/30">
-                <Ionicons name="information-circle-outline" size={18} color="#2563eb" />
+                <Ionicons
+                  name="information-circle-outline"
+                  size={18}
+                  color="#2563eb"
+                />
               </View>
               <CardTitle>Additional Info</CardTitle>
             </View>
@@ -203,7 +276,9 @@ export const ViewVendorPage = () => {
                 Created At
               </Text>
               <Text className="text-gray-900 dark:text-slate-100">
-                {vendor.createdAt ? new Date(vendor.createdAt).toLocaleDateString() : 'N/A'}
+                {vendor.createdAt
+                  ? new Date(vendor.createdAt).toLocaleDateString()
+                  : 'N/A'}
               </Text>
             </View>
             {vendor.note && (
@@ -211,7 +286,9 @@ export const ViewVendorPage = () => {
                 <Text className="text-xs font-medium uppercase text-gray-500 dark:text-slate-500">
                   Note
                 </Text>
-                <Text className="text-gray-900 dark:text-slate-100">{vendor.note}</Text>
+                <Text className="text-gray-900 dark:text-slate-100">
+                  {vendor.note}
+                </Text>
               </View>
             )}
           </CardContent>
@@ -228,11 +305,11 @@ export const ViewVendorPage = () => {
                 <CardTitle>Follow-ups</CardTitle>
               </View>
               <TouchableOpacity
-                onPress={() => {
-                  // @ts-ignore
-                  navigation.navigate('AddFollowUp', { vendorId: vendor._id });
-                }}
-                className="rounded-xl bg-blue-600 px-4 py-2">
+                onPress={() =>
+                  navigation.navigate('AddFollowUp', { vendorId: vendor._id })
+                }
+                className="rounded-xl bg-blue-600 px-4 py-2"
+              >
                 <Text className="text-sm font-semibold text-white">Add</Text>
               </TouchableOpacity>
             </View>
@@ -240,13 +317,18 @@ export const ViewVendorPage = () => {
           <CardContent>
             {vendor.followUps?.length ? (
               <View className="space-y-4">
-                {vendor.followUps.map((fu) => (
+                {vendor.followUps.map((fu: any) => (
                   <View
                     key={fu._id}
-                    className="border-b border-gray-100 pb-4 last:border-0 dark:border-slate-700">
+                    className="border-b border-gray-100 pb-4 last:border-0 dark:border-slate-700"
+                  >
                     <View className="flex-row items-start gap-3">
                       <View className="h-10 w-10 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/40">
-                        <Ionicons name="time-outline" size={18} color="#2563eb" />
+                        <Ionicons
+                          name="time-outline"
+                          size={18}
+                          color="#2563eb"
+                        />
                       </View>
                       <View className="flex-1">
                         <Text className="text-sm font-semibold text-gray-900 dark:text-slate-100">
@@ -256,14 +338,18 @@ export const ViewVendorPage = () => {
                             year: 'numeric',
                           })}
                         </Text>
-                        <Text className="text-sm text-gray-700 dark:text-slate-300">{fu.note}</Text>
+                        <Text className="text-sm text-gray-700 dark:text-slate-300">
+                          {fu.note}
+                        </Text>
                       </View>
                     </View>
                   </View>
                 ))}
               </View>
             ) : (
-              <Text className="text-gray-500 dark:text-slate-400">No follow-ups yet</Text>
+              <Text className="text-gray-500 dark:text-slate-400">
+                No follow-ups yet
+              </Text>
             )}
           </CardContent>
         </Card>

@@ -1,4 +1,7 @@
-import { vendorSchema, type VendorFormData } from '@/utils/validations/vendorSchema';
+import {
+  vendorSchema,
+  type VendorFormData,
+} from '@/utils/validations/vendorSchema';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigation } from '@react-navigation/native';
 import { useState } from 'react';
@@ -36,16 +39,30 @@ export const useAddNewVendor = () => {
         state: 'Telangana',
         country: 'India',
         code: '',
+        latitude: undefined,
+        longitude: undefined,
       },
       priority: 'MEDIUM',
       source: 'WALKIN',
       tags: [],
+      pinPoint: {
+        type: 'Point',
+        coordinates: [78.4867, 17.385], // [longitude, latitude] - Hyderabad default
+      },
       servicePlaces: [],
       serviceSpeciality: {
         speciality: [],
         brands: [],
         servicesOffered: [],
       },
+      serviceArea: {
+        radius: 10,
+        location: {
+          type: 'Point',
+          coordinates: [78.4867, 17.385], // [longitude, latitude]
+        },
+      },
+      isTechnicianAvailable: false,
       noOfTechnicians: 0,
       timeSetUp: {
         businessStartTime: 9,
@@ -129,18 +146,28 @@ export const useAddNewVendor = () => {
     });
   };
 
-  const onSubmit = handleSubmit(async (data) => {
+  const onSubmit = handleSubmit(async data => {
     try {
-      const servicePlaces = servicePlacesInput
-        .split(',')
-        .map((p) => p.trim())
-        .filter(Boolean);
+      // Use pinPoint from form, or fallback to address coordinates, or default
+      const pinPointCoords =
+        data.pinPoint?.coordinates ||
+        (data.address?.longitude && data.address?.latitude
+          ? [data.address.longitude, data.address.latitude]
+          : [78.4867, 17.385]);
+
+      // Use serviceArea from form, or create from pinPoint/address
+      const serviceAreaLocation = data.serviceArea?.location || {
+        type: 'Point' as const,
+        coordinates: pinPointCoords,
+      };
 
       const vendorData = {
         ...data,
         email: data.email || undefined,
         companyName: data.companyName || undefined,
-        servicePlaces: servicePlaces.length ? servicePlaces : undefined,
+        servicePlaces: data.servicePlaces?.length
+          ? data.servicePlaces
+          : undefined,
         serviceSpeciality: {
           speciality: data.serviceSpeciality?.speciality?.length
             ? data.serviceSpeciality.speciality
@@ -154,21 +181,20 @@ export const useAddNewVendor = () => {
         },
         pinPoint: {
           type: 'Point' as const,
-          coordinates: [78.4867, 17.385],
+          coordinates: pinPointCoords,
         },
         serviceArea: {
-          radius: 10,
-          location: {
-            type: 'Point' as const,
-            coordinates: [78.4867, 17.385],
-          },
+          radius: data.serviceArea?.radius || 10,
+          location: serviceAreaLocation,
         },
         priority: data.priority || 'MEDIUM',
         source: data.source || 'PHONE',
         tags: data.tags?.length ? data.tags : [],
+        isTechnicianAvailable: data.isTechnicianAvailable || false,
         noOfTechnicians: data.noOfTechnicians || 0,
         timeSetUp:
-          data.timeSetUp?.businessStartTime != null && data.timeSetUp?.businessEndTime != null
+          data.timeSetUp?.businessStartTime != null &&
+          data.timeSetUp?.businessEndTime != null
             ? data.timeSetUp
             : undefined,
         note: data.note || undefined,
@@ -183,7 +209,10 @@ export const useAddNewVendor = () => {
             text: 'OK',
             onPress: () => {
               try {
-                if (navigation && typeof (navigation as any).goBack === 'function') {
+                if (
+                  navigation &&
+                  typeof (navigation as any).goBack === 'function'
+                ) {
                   (navigation as any).goBack();
                 }
               } catch (err) {
@@ -196,7 +225,10 @@ export const useAddNewVendor = () => {
         Alert.alert('Error', result.message || 'Failed to add vendor');
       }
     } catch (error: any) {
-      const message = error?.response?.data?.message || error?.message || 'Failed to add vendor';
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Failed to add vendor';
       Alert.alert('Error', message);
     }
   });
@@ -204,6 +236,7 @@ export const useAddNewVendor = () => {
   return {
     control,
     errors,
+    setValue,
     trigger,
     specialityFields,
     appendSpeciality,

@@ -1,6 +1,5 @@
-import React from "react";
-import { TouchableOpacity, View, Text } from "react-native";
-import { cn } from "@/lib/utils";
+import React from 'react';
+import { Pressable, View, Text, StyleSheet } from 'react-native';
 
 interface CheckboxProps {
   checked?: boolean;
@@ -9,27 +8,56 @@ interface CheckboxProps {
   className?: string;
 }
 
+const styles = StyleSheet.create({
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  checkboxUnchecked: {
+    backgroundColor: '#ffffff',
+    borderColor: '#d1d5db',
+  },
+  checkboxDisabled: {
+    opacity: 0.5,
+  },
+  checkmark: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+});
+
 export const Checkbox: React.FC<CheckboxProps> = ({
   checked = false,
   onCheckedChange,
   disabled = false,
   className,
 }) => {
+  const handlePress = React.useCallback(() => {
+    if (!disabled && onCheckedChange) {
+      onCheckedChange(!checked);
+    }
+  }, [disabled, onCheckedChange, checked]);
+
   return (
-    <TouchableOpacity
-      onPress={() => !disabled && onCheckedChange?.(!checked)}
+    <Pressable
+      onPress={handlePress}
       disabled={disabled}
-      className={cn(
-        "h-5 w-5 rounded border-2 items-center justify-center",
-        checked ? "bg-blue-600 dark:bg-blue-500 border-blue-600 dark:border-blue-500 shadow-sm" : "bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600",
-        disabled && "opacity-50",
-        className
-      )}
-      activeOpacity={0.7}
+      style={[
+        styles.checkbox,
+        checked ? styles.checkboxChecked : styles.checkboxUnchecked,
+        disabled && styles.checkboxDisabled,
+      ]}
     >
-      {checked && (
-        <Text className="text-white text-sm font-bold">✓</Text>
-      )}
-    </TouchableOpacity>
+      {checked && <Text style={styles.checkmark}>✓</Text>}
+    </Pressable>
   );
 };
