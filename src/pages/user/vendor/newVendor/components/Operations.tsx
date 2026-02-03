@@ -51,8 +51,8 @@ export const Operations = ({
             render={({ field: { value, onChange } }) => (
               <View className="flex-row items-center space-x-3">
                 <Checkbox checked={value || false} onCheckedChange={onChange} />
-                <View className="flex-1">
-                  <Text className="font-semibold text-gray-900 dark:text-slate-100">
+                <View className="flex-1 ml-2">
+                  <Text className="font-semibold text-gray-900 dark:text-slate-100 ">
                     Technician Available
                   </Text>
                   <Text className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">

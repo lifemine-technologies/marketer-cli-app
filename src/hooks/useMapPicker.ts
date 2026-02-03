@@ -73,6 +73,10 @@ export function useMapPicker() {
       : null,
   );
   const [locationLoading, setLocationLoading] = useState(!hasInitialCoords);
+  const [userLocation, setUserLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setMapReady(true), 100);
@@ -82,16 +86,25 @@ export function useMapPicker() {
     };
   }, []);
 
-  // Fetch device current location immediately so map opens centered on device + marker by default
+  // Set default region immediately so map shows right away
   useEffect(() => {
-    if (hasInitialCoords) return;
+    if (!hasInitialCoords && !currentRegion) {
+      setCurrentRegion(DEFAULT_REGION);
+    }
+  }, [hasInitialCoords, currentRegion]);
+
+  // Fetch device current location in background (non-blocking)
+  useEffect(() => {
+    if (hasInitialCoords) {
+      setLocationLoading(false);
+      return;
+    }
 
     let cancelled = false;
     (async () => {
       const hasPermission = await requestLocationPermission();
       if (cancelled || !hasPermission) {
         if (!cancelled) {
-          setCurrentRegion(DEFAULT_REGION);
           setLocationLoading(false);
         }
         return;
@@ -107,17 +120,20 @@ export function useMapPicker() {
             latitudeDelta: 0.05,
             longitudeDelta: 0.05,
           };
+          setUserLocation({ latitude, longitude });
           setCurrentRegion(region);
-          setMarker({ latitude, longitude });
+          // Set marker to user location if no marker is set yet
+          if (!marker) {
+            setMarker({ latitude, longitude });
+          }
           setLocationLoading(false);
         },
         () => {
           if (!cancelled) {
-            setCurrentRegion(DEFAULT_REGION);
             setLocationLoading(false);
           }
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+        { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }, // Reduced timeout, allow cached location
       );
     })();
     return () => {
@@ -130,6 +146,19 @@ export function useMapPicker() {
   }) => {
     const { latitude, longitude } = e.nativeEvent.coordinate;
     setMarker({ latitude, longitude });
+  };
+
+  const handleRegionChangeComplete = (region: {
+    latitude: number;
+    longitude: number;
+    latitudeDelta: number;
+    longitudeDelta: number;
+  }) => {
+    // Update marker to center of map when region changes
+    setMarker({
+      latitude: region.latitude,
+      longitude: region.longitude,
+    });
   };
 
   const handleUseLocation = async () => {
@@ -197,7 +226,9 @@ export function useMapPicker() {
     initialRegion,
     canShowMap,
     locationLoading,
+    userLocation,
     handleMapPress,
+    handleRegionChangeComplete,
     handleUseLocation,
     handleCancel,
   };
