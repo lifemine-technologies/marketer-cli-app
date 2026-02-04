@@ -12,6 +12,7 @@ import { ViewMarketerPage } from '../pages/user/marketers/viewMarketer/ViewMarke
 import { AddMarketerPage } from '../pages/user/marketers/AddMarketerPage';
 import { AddFollowUpPage } from '../pages/user/vendor/AddFollowUpPage';
 import { MapPickerPage } from '../pages/user/vendor/MapPickerPage';
+import { CalendarPage } from '../pages/user/calendar/CalendarPage';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { UserProviderContext } from '../utils/contexts/authUserContext';
 
@@ -77,6 +78,20 @@ const MainTabs = () => {
             />
           ),
           tabBarLabel: 'Vendors',
+        }}
+      />
+      <Tab.Screen
+        name="Calendar"
+        component={CalendarPage}
+        options={{
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons
+              name={focused ? 'calendar' : 'calendar-outline'}
+              size={size || 24}
+              color={color}
+            />
+          ),
+          tabBarLabel: 'Calendar',
         }}
       />
       {canViewCoordinators && (
