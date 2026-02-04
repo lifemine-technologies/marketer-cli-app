@@ -226,8 +226,8 @@ export const startBackgroundLocationTracking = async (): Promise<boolean> => {
         console.error('Location watch error:', error);
       },
       {
-        enableHighAccuracy: false, // Use false for better battery and faster response
-        distanceFilter: 50, // Update every 50 meters (reduced from 10 for better battery)
+        enableHighAccuracy: false, //  for better battery and faster response
+        distanceFilter: 50,
         interval: LOCATION_INTERVAL_MS,
         fastestInterval: LOCATION_INTERVAL_MS,
       },

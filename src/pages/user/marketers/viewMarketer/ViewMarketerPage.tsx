@@ -42,7 +42,7 @@ export const ViewMarketerPage = () => {
     <ScrollView className="flex-1 bg-gray-50 dark:bg-slate-900">
       <View className="px-4 py-6">
         <View className="gap-2 space-y-4">
-          {/* Header Card */}
+          {/* Header  */}
           <View className="rounded-2xl bg-blue-600 p-6 shadow-lg dark:bg-blue-700">
             <View className="mb-5 flex-row items-center justify-between">
               <View className="flex-1 pr-2">
@@ -59,16 +59,22 @@ export const ViewMarketerPage = () => {
             </View>
             <View className="flex-row items-center gap-2 rounded-xl border border-white/30 bg-white/20 px-4 py-3">
               <Ionicons name="call-outline" size={18} color="#ffffff" />
-              <Text className="text-base font-semibold text-white">{marketer.phone}</Text>
+              <Text className="text-base font-semibold text-white">
+                {marketer.phone}
+              </Text>
             </View>
           </View>
 
-          {/* Details Cards */}
+          {/* Details  */}
           <Card>
             <CardHeader>
               <View className="flex-row items-center gap-2">
                 <View className="h-9 w-9 items-center justify-center rounded-xl bg-blue-100 shadow-sm dark:bg-blue-900/30">
-                  <Ionicons name="document-text-outline" size={18} color="#2563eb" />
+                  <Ionicons
+                    name="document-text-outline"
+                    size={18}
+                    color="#2563eb"
+                  />
                 </View>
                 <CardTitle className="text-base">Details</CardTitle>
               </View>

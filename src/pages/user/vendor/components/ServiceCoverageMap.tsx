@@ -10,7 +10,7 @@ import {
   Dimensions,
 } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, Circle, Marker } from 'react-native-maps';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');

@@ -10,10 +10,6 @@ import {
   WeekView,
 } from './components';
 
-/**
- * Calendar page: shows follow-up events in Month or Week view.
- * Logic lives in useCalendarPage; UI is split into small components.
- */
 function CalendarPageContent() {
   const {
     view,

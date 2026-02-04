@@ -1,7 +1,10 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { passwordSchema, phoneNumberSchema } from '../../../utils/validations/primitive';
+import {
+  passwordSchema,
+  phoneNumberSchema,
+} from '../../../utils/validations/primitive';
 import { useContext } from 'react';
 import { Alert } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
@@ -11,9 +14,8 @@ import { AuthUserContext } from '../../../utils/contexts/authUserContext';
 import { useEncryption } from '@/hooks/useEncryption';
 import { API_CONFIG } from '@/config/url';
 
-// Simple UUID v4 generator (for React Native compatibility)
 const generateUUID = (): string => {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
     const r = (Math.random() * 16) | 0;
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
@@ -37,7 +39,6 @@ interface AuthLoginResponse {
     transactionId?: string;
     accessToken: string;
     refreshToken: string;
-    // User data might be in the response or need to be fetched separately
     phone?: string;
     role?: string;
     createdAt?: string;
@@ -50,8 +51,8 @@ interface AuthLoginResponse {
 export const useLoginLogic = () => {
   const authContext = useContext(AuthUserContext);
 
-  // Try to use encryption hook, but handle if public key is not ready
-  let encryptAesKeyFn: ((data: Record<string, unknown>) => string) | null = null;
+  let encryptAesKeyFn: ((data: Record<string, unknown>) => string) | null =
+    null;
   try {
     const encryption = useEncryption();
     encryptAesKeyFn = encryption.encryptAesKey;
@@ -114,7 +115,10 @@ export const useLoginLogic = () => {
         console.log('Sending login request to:', fullUrl);
         console.log('Payload:', JSON.stringify(payload, null, 2));
 
-        const response = await authAPI.post<AuthLoginResponse>(API_ENDPOINTS.AUTH.LOGIN, payload);
+        const response = await authAPI.post<AuthLoginResponse>(
+          API_ENDPOINTS.AUTH.LOGIN,
+          payload,
+        );
 
         // If status is error, throw to trigger onError handler
         if (response.data.status === 'error') {
@@ -127,11 +131,17 @@ export const useLoginLogic = () => {
         // Provide more detailed error information
         if (error?.response) {
           console.error('Response status:', error.response.status);
-          console.error('Response data:', JSON.stringify(error.response.data, null, 2));
+          console.error(
+            'Response data:',
+            JSON.stringify(error.response.data, null, 2),
+          );
           console.error('Response headers:', error.response.headers);
           console.error('Request URL:', error.config?.url);
           console.error('Request baseURL:', error.config?.baseURL);
-          console.error('Full URL:', `${error.config?.baseURL}${error.config?.url}`);
+          console.error(
+            'Full URL:',
+            `${error.config?.baseURL}${error.config?.url}`,
+          );
         } else if (error?.request) {
           console.error('Request made but no response:', error.request);
           console.error('Request URL:', error.config?.url);
@@ -142,7 +152,7 @@ export const useLoginLogic = () => {
         throw error;
       }
     },
-    onSuccess: async (data) => {
+    onSuccess: async data => {
       // This should not be called if status is error (we throw in mutationFn)
       // But handle it just in case
       if (data.status === 'success') {
@@ -160,7 +170,10 @@ export const useLoginLogic = () => {
         }
       } else {
         // This shouldn't happen as we throw on error, but handle it
-        Alert.alert('Login Failed', data.message || 'Login failed. Please try again.');
+        Alert.alert(
+          'Login Failed',
+          data.message || 'Login failed. Please try again.',
+        );
       }
     },
     onError: (error: any) => {
@@ -183,7 +196,8 @@ export const useLoginLogic = () => {
           errorMessage = error.response.data.message;
         } else if (error.response.data.status === 'error') {
           errorMessage =
-            error.response.data.message || 'Login failed. Please check your credentials.';
+            error.response.data.message ||
+            'Login failed. Please check your credentials.';
         }
       } else if (error?.message) {
         errorMessage = error.message;
@@ -194,7 +208,7 @@ export const useLoginLogic = () => {
   });
 
   const onSubmit = loginForm.handleSubmit((data: LoginFormData) =>
-    loginMutation.mutate({ ...data, session: generateUUID() })
+    loginMutation.mutate({ ...data, session: generateUUID() }),
   );
 
   return {
