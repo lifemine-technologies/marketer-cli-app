@@ -65,10 +65,9 @@ export function useDashboardPage(): UseDashboardPageReturn {
   const attendance = user?.attendance;
   const isActive = attendance?.isActive || false;
 
-  // Fetch data for dynamic stats - use minimal queries just for counts
   const vendorsQuery = isAdmin
-    ? useAllVendors({ page: 1, limit: 1 }) // Just get count
-    : useVendors({ page: 1, limit: 1 }); // Just get count
+    ? useAllVendors({ page: 1, limit: 1 })
+    : useVendors({ page: 1, limit: 1 });
 
   const marketersQuery = useMarketers();
   const { data: todaysFollowUps = [], isLoading: isLoadingFollowUps } =
@@ -211,7 +210,12 @@ export function useDashboardPage(): UseDashboardPageReturn {
         return;
       }
       // On Android 10+, require background location to punch in (for tracking while working)
-      if (Platform.OS === 'android' && typeof Platform.Version === 'number' && Platform.Version >= 29 && !background) {
+      if (
+        Platform.OS === 'android' &&
+        typeof Platform.Version === 'number' &&
+        Platform.Version >= 29 &&
+        !background
+      ) {
         Alert.alert(
           'Background Location Required',
           'Please grant "Allow all the time" (background) location permission to punch in. Your location is tracked while you are working.',

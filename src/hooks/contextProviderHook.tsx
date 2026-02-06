@@ -14,10 +14,7 @@ import {
 import { userAPI, type BasicReturnWithType } from '@/config/axios';
 import { API_ENDPOINTS } from '@/config/url';
 import { convertJwkToPem } from '../utils/crypto.util';
-import {
-  startBackgroundLocationTracking,
-  stopBackgroundLocationTracking,
-} from '@/services/locationTracking';
+import { stopBackgroundLocationTracking } from '@/services/locationTracking';
 
 export const AuthContextProvider = ({
   children,
@@ -28,7 +25,7 @@ export const AuthContextProvider = ({
   const [userData, setUserData] = useState<UserData | undefined>(undefined);
   const [userLoading, setUserLoading] = useState(true);
 
-  // Fetch public key from well-known endpoint (optional - may not exist)
+  // Fetch public key
   const { data: wellknownData, isLoading: isLoadingPublicKey } = useQuery({
     queryKey: ['wellknownPublic'],
     queryFn: async () => {
@@ -51,21 +48,13 @@ export const AuthContextProvider = ({
 
         return { ...response.data, publicKey };
       } catch (error: any) {
-        // If 404, the endpoint doesn't exist - allow app to continue without encryption
-        if (error?.response?.status === 404) {
-          console.warn(
-            'Public key endpoint not found (404). Login may work without encryption.',
-          );
-          return { publicKey: '' };
-        }
         console.error('Error fetching public key:', error);
-        // Return empty public key if fetch fails (encryption will fail gracefully)
         return { publicKey: '' };
       }
     },
     refetchOnWindowFocus: false,
     staleTime: Infinity,
-    retry: false, // Don't retry on 404
+    retry: false,
   });
 
   // Check for existing token on mount
@@ -107,14 +96,9 @@ export const AuthContextProvider = ({
 
   // Function to login user - just trigger token check, don't set hardcoded userData
   const login = useCallback(async () => {
-    // Token is already stored by setAccessToken in LoginPageLogic
-    // Just check for token and set it - the userDetails query will automatically fetch the real data
     const token = await getAccessToken();
     if (token) {
       setUser({ accessToken: token });
-      // Don't set any userData here - let the userDetails query fetch the real data
-      // This ensures we get the correct role from the API, not hardcoded values
-      // The userDetails query will automatically fetch and update userData with correct role
     }
   }, []);
 

@@ -67,7 +67,7 @@ function DashboardPageContent() {
           />
         )}
 
-        <StatsGrid stats={stats} onStatPress={handleStatPress} />
+        {/* <StatsGrid stats={stats} onStatPress={handleStatPress} /> */}
 
         <TodaysFollowUps
           events={todaysFollowUps}
