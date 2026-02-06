@@ -1,10 +1,20 @@
+/**
+ * Location tracking for attendance. Implemented entirely in TypeScript (no Kotlin/native code).
+ *
+ * When does it work?
+ * - App open (foreground or background): works — we send on active/inactive/background.
+ * - App in background, screen off/locked: best effort (OS may keep or kill the app).
+ * - App closed (killed): does NOT work in TypeScript — would require a native foreground service.
+ * - Device off: does NOT work.
+ */
+
 import Geolocation from '@react-native-community/geolocation';
 import { Platform, AppState, Alert, PermissionsAndroid } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { userAPI } from '@/config/axios';
 import { API_ENDPOINTS } from '@/config/url';
 
-const LOCATION_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+const LOCATION_INTERVAL_MS = 5 * 60 * 1000;
 const LOCATION_STORAGE_KEY = 'isLocationTrackingActive';
 const LAST_LOCATION_SENT_KEY = 'lastLocationSentAt';
 const PENDING_START_KEY = 'pendingLocationTrackingStart';
@@ -23,42 +33,63 @@ export interface LocationData {
 }
 
 /**
- * Request location permissions for Android
- * Returns: { foreground: boolean, background: boolean }
+ * Request location permissions (foreground and background).
+ * Skips requesting if already granted to avoid duplicate permission dialogs.
  */
-const requestLocationPermissions = async (): Promise<{
+export const requestLocationPermissions = async (): Promise<{
   foreground: boolean;
   background: boolean;
 }> => {
   if (Platform.OS === 'android') {
     try {
-      // Request foreground location permission (required)
-      const fineLocation = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-      );
+      // Check foreground first – skip request if already granted
+      const hasFine =
+        (await PermissionsAndroid.check(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        )) === true;
+      const fineLocation = hasFine
+        ? PermissionsAndroid.RESULTS.GRANTED
+        : await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+            {
+              title: 'Location Permission',
+              message:
+                'This app needs access to your location for attendance tracking.',
+              buttonNeutral: 'Ask Me Later',
+              buttonNegative: 'Cancel',
+              buttonPositive: 'OK',
+            },
+          );
       if (fineLocation !== PermissionsAndroid.RESULTS.GRANTED) {
         Alert.alert('Permission Denied', 'Location permission is required');
         return { foreground: false, background: false };
       }
 
-      // Request background location permission for Android 10+ (optional)
+      // Request background location permission only if not already granted
       let backgroundGranted = false;
       if (Platform.Version >= 29) {
-        try {
-          const backgroundLocation = await PermissionsAndroid.request(
+        const hasBackground =
+          (await PermissionsAndroid.check(
             PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION,
-          );
-          backgroundGranted =
-            backgroundLocation === PermissionsAndroid.RESULTS.GRANTED;
-          if (!backgroundGranted) {
-            Alert.alert(
-              'Background Permission Not Granted',
-              'Background location permission is not granted. Location will only be tracked when the app is open.',
+          )) === true;
+        if (hasBackground) {
+          backgroundGranted = true;
+        } else {
+          try {
+            const backgroundLocation = await PermissionsAndroid.request(
+              PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION,
             );
+            backgroundGranted =
+              backgroundLocation === PermissionsAndroid.RESULTS.GRANTED;
+            if (!backgroundGranted) {
+              Alert.alert(
+                'Background Permission Not Granted',
+                'Background location permission is not granted. Location will only be tracked when the app is open.',
+              );
+            }
+          } catch (bgErr) {
+            console.warn('Error requesting background permission:', bgErr);
           }
-        } catch (bgErr) {
-          console.warn('Error requesting background permission:', bgErr);
-          // Continue without background permission
         }
       }
 
@@ -177,15 +208,6 @@ export const startBackgroundLocationTracking = async (): Promise<boolean> => {
       );
     }
 
-    // Check if app is in foreground (Android requirement)
-    if (Platform.OS === 'android' && AppState.currentState !== 'active') {
-      await AsyncStorage.setItem(PENDING_START_KEY, 'true');
-      console.warn(
-        'App is in background. Location will start when you open the app.',
-      );
-      return false;
-    }
-
     // Send initial location immediately when starting tracking (force send)
     console.log(
       'Starting background location tracking - sending initial location...',
@@ -193,7 +215,9 @@ export const startBackgroundLocationTracking = async (): Promise<boolean> => {
     await getLocationAndSend(true);
 
     // Wait a bit to ensure initial location is sent and timestamp is saved
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise<void>(resolve => {
+      setTimeout(() => resolve(), 1000);
+    });
 
     // Start watching position
     watchId = Geolocation.watchPosition(
@@ -296,28 +320,45 @@ export const isLocationTrackingActive = async (): Promise<boolean> => {
 };
 
 /**
- * Register app state listener to handle pending starts
+ * App state listener: keeps location tracking working in both foreground and background.
+ * - Foreground (active): send location when app becomes active; retry pending start.
+ * - Background (inactive/background): send location once when leaving foreground.
+ * All logic is in TypeScript; no native (Kotlin/Java) code.
  */
 let lastPendingStartAttempt = 0;
 const PENDING_RETRY_MS = 3000;
 
 export function registerLocationTrackingAppStateListener(): () => void {
   const subscription = AppState.addEventListener('change', async nextState => {
-    if (nextState !== 'active') return;
-    const now = Date.now();
-    if (now - lastPendingStartAttempt < PENDING_RETRY_MS) return;
-
     try {
-      const pending = await AsyncStorage.getItem(PENDING_START_KEY);
-      if (pending !== 'true') return;
+      if (nextState === 'active') {
+        // Foreground: when app becomes active and tracking is running, send location now
+        if (watchId !== null) {
+          getLocationAndSend(true);
+          return;
+        }
+        // Retry pending start (with rate limit)
+        const now = Date.now();
+        if (now - lastPendingStartAttempt < PENDING_RETRY_MS) return;
+        const pending = await AsyncStorage.getItem(PENDING_START_KEY);
+        if (pending !== 'true') return;
+        const isActive = await AsyncStorage.getItem(LOCATION_STORAGE_KEY);
+        if (isActive !== 'true') return;
+        lastPendingStartAttempt = now;
+        await startBackgroundLocationTracking();
+        return;
+      }
 
-      const isActive = await AsyncStorage.getItem(LOCATION_STORAGE_KEY);
-      if (isActive !== 'true') return;
-
-      lastPendingStartAttempt = now;
-      await startBackgroundLocationTracking();
+      // Background: when app goes to inactive/background and tracking is active,
+      // send location once so we have a position at transition (best effort)
+      if (
+        (nextState === 'inactive' || nextState === 'background') &&
+        watchId !== null
+      ) {
+        getLocationAndSend(true);
+      }
     } catch (err) {
-      console.error('Pending location start failed:', err);
+      console.error('Location tracking app state handler failed:', err);
     }
   });
 

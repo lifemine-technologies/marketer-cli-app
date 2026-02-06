@@ -19,6 +19,16 @@ const config = {
       return context.resolveRequest(context, moduleName, platform);
     },
   },
+  watchFolders: [
+    path.resolve(__dirname),
+  ],
+  // Exclude build artifacts and native module build directories from watching
+  blockList: [
+    /.*\/node_modules\/.*\/android\/\.cxx\/.*/,
+    /.*\/node_modules\/.*\/android\/build\/.*/,
+    /.*\/\.cxx\/.*/,
+    /.*\/build\/.*/,
+  ],
 };
 
 module.exports = withNativeWind(mergeConfig(defaultConfig, config), {

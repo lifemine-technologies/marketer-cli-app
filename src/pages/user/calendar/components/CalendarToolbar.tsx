@@ -44,7 +44,7 @@ export function CalendarToolbar({
 
   return (
     <View className="mx-4 mb-3 flex-row items-center justify-between gap-2">
-      <View className="flex-row rounded-lg bg-gray-200/80 p-0.5 dark:bg-slate-700/50 shrink-0">
+      {/* <View className="flex-row rounded-lg bg-gray-200/80 p-0.5 dark:bg-slate-700/50 shrink-0">
         {(['Week', 'Month'] as CalendarViewType[]).map(v => (
           <TouchableOpacity
             key={v}
@@ -67,7 +67,7 @@ export function CalendarToolbar({
             </Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </View> */}
 
       <View className="flex-1 flex-row items-center justify-center gap-1 min-w-0">
         <TouchableOpacity

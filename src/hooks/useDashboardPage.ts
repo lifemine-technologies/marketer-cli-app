@@ -1,5 +1,5 @@
 import { useContext, useState, useMemo, useCallback } from 'react';
-import { Alert, Platform, PermissionsAndroid } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Geolocation from '@react-native-community/geolocation';
 import {
@@ -11,30 +11,7 @@ import { useTodaysFollowUps } from '@/hooks/api/useFollowUpCalendar';
 import { useVendors, useAllVendors } from '@/hooks/api/useVendors';
 import { useMarketers } from '@/hooks/api/useMarketers';
 import { quickActions } from '@/pages/user/dashboard/constants';
-
-// Request location permission for Android
-const requestLocationPermission = async (): Promise<boolean> => {
-  if (Platform.OS === 'android') {
-    try {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-        {
-          title: 'Location Permission',
-          message:
-            'This app needs access to your location for attendance tracking.',
-          buttonNeutral: 'Ask Me Later',
-          buttonNegative: 'Cancel',
-          buttonPositive: 'OK',
-        },
-      );
-      return granted === PermissionsAndroid.RESULTS.GRANTED;
-    } catch (err) {
-      console.warn(err);
-      return false;
-    }
-  }
-  return true; // iOS permissions are handled automatically
-};
+import { requestLocationPermissions } from '@/services/locationTracking';
 
 export interface UseDashboardPageReturn {
   // User info
@@ -48,8 +25,10 @@ export interface UseDashboardPageReturn {
   attendance: any;
   isActive: boolean;
   isGettingLocation: boolean;
-  isPunchPending: boolean;
-  handlePunch: () => Promise<void>;
+  isPunchInPending: boolean;
+  isPunchOutPending: boolean;
+  handlePunchIn: () => Promise<void>;
+  handlePunchOut: () => Promise<void>;
 
   // Stats
   stats: Array<{
@@ -85,7 +64,6 @@ export function useDashboardPage(): UseDashboardPageReturn {
 
   const attendance = user?.attendance;
   const isActive = attendance?.isActive || false;
-  const mutation = isActive ? punchOutMutation : punchInMutation;
 
   // Fetch data for dynamic stats - use minimal queries just for counts
   const vendorsQuery = isAdmin
@@ -96,9 +74,7 @@ export function useDashboardPage(): UseDashboardPageReturn {
   const { data: todaysFollowUps = [], isLoading: isLoadingFollowUps } =
     useTodaysFollowUps();
 
-  // Calculate dynamic stats
   const stats = useMemo(() => {
-    // API returns: { status: 'success', data: VendorListResponse }
     const vendorCount = vendorsQuery.data?.data?.totalDocs || 0;
     const coordinatorCount = canViewCoordinators
       ? marketersQuery.data?.data?.length || 0
@@ -155,51 +131,17 @@ export function useDashboardPage(): UseDashboardPageReturn {
     );
   }, [authContext]);
 
-  const handlePunch = useCallback(async () => {
-    setIsGettingLocation(true);
-    try {
-      // Request location permission
-      const hasPermission = await requestLocationPermission();
-      if (!hasPermission) {
-        Alert.alert(
-          'Permission Denied',
-          'Location permission is required for attendance.',
-        );
-        setIsGettingLocation(false);
-        return;
-      }
-
-      // Check if location services are enabled (Android)
-      if (Platform.OS === 'android') {
-        try {
-          const enabled = await new Promise<boolean>(resolve => {
-            Geolocation.getCurrentPosition(
-              () => resolve(true),
-              () => resolve(false),
-              { timeout: 1000, maximumAge: Infinity },
-            );
-          });
-          if (!enabled) {
-            Alert.alert(
-              'Location Services Disabled',
-              'Please enable location services in your device settings.',
-            );
-            setIsGettingLocation(false);
-            return;
-          }
-        } catch (err) {
-          // Continue anyway
-        }
-      }
-
-      // Get current location with longer timeout and better options
+  const runPunchWithLocation = useCallback(
+    (
+      mutation: typeof punchInMutation | typeof punchOutMutation,
+      actionLabel: 'Punched in' | 'Punched out',
+    ) => {
       Geolocation.getCurrentPosition(
         position => {
           const coordinates: [number, number] = [
             position.coords.longitude,
             position.coords.latitude,
           ];
-
           mutation.mutate(
             { location: { type: 'Point', coordinates } },
             {
@@ -208,8 +150,7 @@ export function useDashboardPage(): UseDashboardPageReturn {
                 if (response.data.status === 'success') {
                   Alert.alert(
                     'Success',
-                    response.data.message ||
-                      `${isActive ? 'Punched out' : 'Punched in'} successfully!`,
+                    response.data.message || `${actionLabel} successfully!`,
                   );
                 } else {
                   Alert.alert(
@@ -232,7 +173,6 @@ export function useDashboardPage(): UseDashboardPageReturn {
         error => {
           setIsGettingLocation(false);
           console.error('Error getting location:', error);
-
           let errorMessage = 'Failed to get your location. ';
           if (error.code === 1) {
             errorMessage +=
@@ -246,24 +186,114 @@ export function useDashboardPage(): UseDashboardPageReturn {
           } else {
             errorMessage += 'Please ensure location services are enabled.';
           }
-
           Alert.alert('Location Error', errorMessage);
         },
         {
-          enableHighAccuracy: false, // Use false for faster response
-          timeout: 30000, // Increased to 30 seconds
-          maximumAge: 60000, // Accept location up to 1 minute old
+          enableHighAccuracy: false,
+          timeout: 30000,
+          maximumAge: 60000,
         },
       );
+    },
+    [],
+  );
+
+  const handlePunchIn = useCallback(async () => {
+    setIsGettingLocation(true);
+    try {
+      const { foreground, background } = await requestLocationPermissions();
+      if (!foreground) {
+        Alert.alert(
+          'Permission Denied',
+          'Location permission is required for attendance.',
+        );
+        setIsGettingLocation(false);
+        return;
+      }
+      // On Android 10+, require background location to punch in (for tracking while working)
+      if (Platform.OS === 'android' && typeof Platform.Version === 'number' && Platform.Version >= 29 && !background) {
+        Alert.alert(
+          'Background Location Required',
+          'Please grant "Allow all the time" (background) location permission to punch in. Your location is tracked while you are working.',
+        );
+        setIsGettingLocation(false);
+        return;
+      }
+      if (Platform.OS === 'android') {
+        try {
+          const enabled = await new Promise<boolean>(resolve => {
+            Geolocation.getCurrentPosition(
+              () => resolve(true),
+              () => resolve(false),
+              { timeout: 1000, maximumAge: Infinity },
+            );
+          });
+          if (!enabled) {
+            Alert.alert(
+              'Location Services Disabled',
+              'Please enable location services in your device settings.',
+            );
+            setIsGettingLocation(false);
+            return;
+          }
+        } catch {
+          // Continue anyway
+        }
+      }
+      runPunchWithLocation(punchInMutation, 'Punched in');
     } catch (error: any) {
       setIsGettingLocation(false);
-      console.error('Error in handlePunch:', error);
+      console.error('Error in handlePunchIn:', error);
       Alert.alert(
         'Error',
         'Failed to get your location. Please ensure location services are enabled and try again.',
       );
     }
-  }, [mutation, isActive]);
+  }, [punchInMutation, runPunchWithLocation]);
+
+  const handlePunchOut = useCallback(async () => {
+    setIsGettingLocation(true);
+    try {
+      const { foreground } = await requestLocationPermissions();
+      if (!foreground) {
+        Alert.alert(
+          'Permission Denied',
+          'Location permission is required for attendance.',
+        );
+        setIsGettingLocation(false);
+        return;
+      }
+      if (Platform.OS === 'android') {
+        try {
+          const enabled = await new Promise<boolean>(resolve => {
+            Geolocation.getCurrentPosition(
+              () => resolve(true),
+              () => resolve(false),
+              { timeout: 1000, maximumAge: Infinity },
+            );
+          });
+          if (!enabled) {
+            Alert.alert(
+              'Location Services Disabled',
+              'Please enable location services in your device settings.',
+            );
+            setIsGettingLocation(false);
+            return;
+          }
+        } catch {
+          // Continue anyway
+        }
+      }
+      runPunchWithLocation(punchOutMutation, 'Punched out');
+    } catch (error: any) {
+      setIsGettingLocation(false);
+      console.error('Error in handlePunchOut:', error);
+      Alert.alert(
+        'Error',
+        'Failed to get your location. Please ensure location services are enabled and try again.',
+      );
+    }
+  }, [punchOutMutation, runPunchWithLocation]);
 
   const navigateToScreen = useCallback(
     (screen: string, params?: object) => {
@@ -282,8 +312,10 @@ export function useDashboardPage(): UseDashboardPageReturn {
     attendance,
     isActive,
     isGettingLocation,
-    isPunchPending: mutation.isPending,
-    handlePunch,
+    isPunchInPending: punchInMutation.isPending,
+    isPunchOutPending: punchOutMutation.isPending,
+    handlePunchIn,
+    handlePunchOut,
     stats,
     todaysFollowUps,
     isLoadingFollowUps,

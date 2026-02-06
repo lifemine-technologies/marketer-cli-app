@@ -18,8 +18,10 @@ function DashboardPageContent() {
     attendance,
     isActive,
     isGettingLocation,
-    isPunchPending,
-    handlePunch,
+    isPunchInPending,
+    isPunchOutPending,
+    handlePunchIn,
+    handlePunchOut,
     stats,
     todaysFollowUps,
     isLoadingFollowUps,
@@ -58,8 +60,10 @@ function DashboardPageContent() {
             attendance={attendance}
             isActive={isActive}
             isGettingLocation={isGettingLocation}
-            isPunchPending={isPunchPending}
-            onPunch={handlePunch}
+            isPunchInPending={isPunchInPending}
+            isPunchOutPending={isPunchOutPending}
+            onPunchIn={handlePunchIn}
+            onPunchOut={handlePunchOut}
           />
         )}
 

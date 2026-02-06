@@ -7,16 +7,22 @@ export interface AttendanceCardProps {
   attendance: any;
   isActive: boolean;
   isGettingLocation: boolean;
-  isPunchPending: boolean;
-  onPunch: () => void;
+  isPunchInPending: boolean;
+  isPunchOutPending: boolean;
+  onPunchIn: () => void;
+  onPunchOut: () => void;
 }
 export function AttendanceCard({
   attendance,
   isActive,
   isGettingLocation,
-  isPunchPending,
-  onPunch,
+  isPunchInPending,
+  isPunchOutPending,
+  onPunchIn,
+  onPunchOut,
 }: AttendanceCardProps) {
+  const isPending = isActive ? isPunchOutPending : isPunchInPending;
+  const onPunch = isActive ? onPunchOut : onPunchIn;
   return (
     <Card className="-mt-6 mb-6">
       <View className="p-5">
@@ -41,12 +47,12 @@ export function AttendanceCard({
           </View>
           <TouchableOpacity
             onPress={onPunch}
-            disabled={isGettingLocation || isPunchPending}
+            disabled={isGettingLocation || isPending}
             className={`${
               isActive ? 'bg-red-600' : 'bg-green-600'
             } flex-row items-center gap-2 rounded-xl px-6 py-3 shadow-lg active:opacity-80`}
           >
-            {isGettingLocation || isPunchPending ? (
+            {isGettingLocation || isPending ? (
               <ActivityIndicator color="#ffffff" />
             ) : (
               <>
