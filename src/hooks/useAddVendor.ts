@@ -47,7 +47,7 @@ export const useAddNewVendor = () => {
       tags: [],
       pinPoint: {
         type: 'Point',
-        coordinates: [78.4867, 17.385], // [longitude, latitude] - Hyderabad default
+        coordinates: [78.4867, 17.385], //default-hyd
       },
       servicePlaces: [],
       serviceSpeciality: {
@@ -59,7 +59,7 @@ export const useAddNewVendor = () => {
         radius: 10,
         location: {
           type: 'Point',
-          coordinates: [78.4867, 17.385], // [longitude, latitude]
+          coordinates: [78.4867, 17.385],
         },
       },
       isTechnicianAvailable: false,

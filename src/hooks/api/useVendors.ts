@@ -185,6 +185,7 @@ export const useAddFollowUp = (vendorId: string) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vendor', vendorId] });
       queryClient.invalidateQueries({ queryKey: ['vendors'] });
+      queryClient.invalidateQueries({ queryKey: ['follow-up-calendar'] });
     },
     onError: (error: unknown) => {
       console.error('Add follow-up error:', error);

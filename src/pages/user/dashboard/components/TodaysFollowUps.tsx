@@ -1,5 +1,11 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+  ScrollView,
+} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Card } from '@/components/ui/Card';
 import type { CalendarEvent } from '@/hooks/api/useFollowUpCalendar';
@@ -45,7 +51,7 @@ export function TodaysFollowUps({
           </Text>
         </TouchableOpacity>
       </View>
-      <Card className="overflow-hidden">
+      <Card>
         {isLoading ? (
           <View className="items-center justify-center py-8">
             <ActivityIndicator size="small" color="#2563eb" />
@@ -66,7 +72,11 @@ export function TodaysFollowUps({
             </Text>
           </View>
         ) : (
-          <View className="divide-y divide-gray-100 dark:divide-slate-700">
+          <ScrollView
+            className="divide-y divide-gray-100 dark:divide-slate-700  h-[400px]"
+            nestedScrollEnabled
+            showsVerticalScrollIndicator={true}
+          >
             {events.map((event, index) => (
               <TouchableOpacity
                 key={`${event._id}-${index}`}
@@ -135,7 +145,7 @@ export function TodaysFollowUps({
                 </View>
               </TouchableOpacity>
             ))}
-          </View>
+          </ScrollView>
         )}
       </Card>
     </View>
