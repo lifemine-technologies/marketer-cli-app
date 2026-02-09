@@ -40,6 +40,17 @@ function getTodayRange(): { fromDate: string; toDate: string } {
   };
 }
 
+/** Return true if the given date string is on the same calendar day as today (local time). */
+function isEventDateToday(dateStr: string): boolean {
+  const eventDate = new Date(dateStr);
+  const today = new Date();
+  return (
+    eventDate.getFullYear() === today.getFullYear() &&
+    eventDate.getMonth() === today.getMonth() &&
+    eventDate.getDate() === today.getDate()
+  );
+}
+
 /**
  * Fetch follow-up calendar events for a date range.
  */
@@ -61,7 +72,14 @@ export function useFollowUpCalendar(fromDate?: string, toDate?: string) {
 
 /**
  * Fetch today's follow-ups only (convenience hook for dashboard).
+ * Filters results to events whose date is on the user's local today.
  */
 export function useTodaysFollowUps() {
-  return useFollowUpCalendar();
+  const query = useFollowUpCalendar();
+  const filteredData =
+    query.data?.filter((event) => isEventDateToday(event.date)) ?? [];
+  return {
+    ...query,
+    data: filteredData,
+  };
 }

@@ -1,11 +1,10 @@
 import React from 'react';
-import { ScrollView, View } from 'react-native';
+import { ScrollView, View, ActivityIndicator } from 'react-native';
 import { navigateToViewVendor } from '@/navigation/rootNavigation';
 import { useDashboardPage } from '@/hooks/useDashboardPage';
 import {
   DashboardHeader,
   AttendanceCard,
-  StatsGrid,
   TodaysFollowUps,
   QuickActions,
 } from './components';
@@ -22,21 +21,12 @@ function DashboardPageContent() {
     isPunchOutPending,
     handlePunchIn,
     handlePunchOut,
-    stats,
     todaysFollowUps,
     isLoadingFollowUps,
     filteredActions,
     handleLogout,
     navigateToScreen,
   } = useDashboardPage();
-
-  const handleStatPress = (stat: { label: string }) => {
-    if (stat.label.includes('Vendors')) {
-      navigateToScreen('Vendors');
-    } else if (stat.label.includes('Coordinators')) {
-      navigateToScreen('Coordinators');
-    }
-  };
 
   const handleEventPress = (eventId: string) => {
     navigateToViewVendor(eventId);
@@ -45,6 +35,14 @@ function DashboardPageContent() {
   const handleViewCalendar = () => {
     navigateToScreen('Calendar');
   };
+
+  if (isLoadingFollowUps) {
+    return (
+      <View className="flex-1 bg-gray-50 dark:bg-slate-900 items-center justify-center">
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return (
     <ScrollView className="flex-1 bg-gray-50 dark:bg-slate-900">
@@ -66,8 +64,6 @@ function DashboardPageContent() {
             onPunchOut={handlePunchOut}
           />
         )}
-
-        {/* <StatsGrid stats={stats} onStatPress={handleStatPress} /> */}
 
         <TodaysFollowUps
           events={todaysFollowUps}

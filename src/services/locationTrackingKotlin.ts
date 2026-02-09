@@ -21,6 +21,7 @@ export const startBackgroundLocationTrackingKotlin =
         console.error('Missing access token or API base URL');
         return false;
       }
+      await LocationTrackingModule.stopTracking();
 
       await LocationTrackingModule.startTracking(apiBaseUrl, accessToken);
       return true;

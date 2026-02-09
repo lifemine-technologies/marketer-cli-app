@@ -8,8 +8,9 @@ import {
 } from '@/utils/contexts/authUserContext';
 import { useAttendance } from '@/hooks/api/useAttendance';
 import { useTodaysFollowUps } from '@/hooks/api/useFollowUpCalendar';
-import { useVendors, useAllVendors } from '@/hooks/api/useVendors';
-import { useMarketers } from '@/hooks/api/useMarketers';
+// Stats (Coordinator/Vendor counts) fetched on Vendors & Coordinators pages
+// import { useVendors, useAllVendors } from '@/hooks/api/useVendors';
+// import { useMarketers } from '@/hooks/api/useMarketers';
 import { quickActions } from '@/pages/user/dashboard/constants';
 import { requestLocationPermissions } from '@/services/locationTracking';
 
@@ -65,39 +66,15 @@ export function useDashboardPage(): UseDashboardPageReturn {
   const attendance = user?.attendance;
   const isActive = attendance?.isActive || false;
 
-  const vendorsQuery = isAdmin
-    ? useAllVendors({ page: 1, limit: 1 })
-    : useVendors({ page: 1, limit: 1 });
-
-  const marketersQuery = useMarketers();
   const { data: todaysFollowUps = [], isLoading: isLoadingFollowUps } =
     useTodaysFollowUps();
 
-  const stats = useMemo(() => {
-    const vendorCount = vendorsQuery.data?.data?.totalDocs || 0;
-    const coordinatorCount = canViewCoordinators
-      ? marketersQuery.data?.data?.length || 0
-      : 0;
-
-    const statsArray = [
-      {
-        label: isAdmin ? 'Total Vendors' : 'My Vendors',
-        value: vendorCount.toString(),
-        icon: 'storefront' as const,
-      },
-    ];
-
-    // Only show coordinators stat if user can view coordinators
-    if (canViewCoordinators) {
-      statsArray.push({
-        label: 'Active Coordinators',
-        value: coordinatorCount.toString(),
-        icon: 'people' as const,
-      });
-    }
-
-    return statsArray;
-  }, [vendorsQuery.data, marketersQuery.data, isAdmin, canViewCoordinators]);
+  // Stats grid removed; vendor/coordinator counts are fetched on their respective pages
+  const stats: Array<{
+    label: string;
+    value: string;
+    icon: 'storefront' | 'people';
+  }> = [];
 
   const filteredActions = useMemo(
     () =>
@@ -209,7 +186,6 @@ export function useDashboardPage(): UseDashboardPageReturn {
         setIsGettingLocation(false);
         return;
       }
-      // On Android 10+, require background location to punch in (for tracking while working)
       if (
         Platform.OS === 'android' &&
         typeof Platform.Version === 'number' &&

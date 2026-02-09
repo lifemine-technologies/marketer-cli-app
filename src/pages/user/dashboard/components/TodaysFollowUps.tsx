@@ -73,7 +73,7 @@ export function TodaysFollowUps({
           </View>
         ) : (
           <ScrollView
-            className="divide-y divide-gray-100 dark:divide-slate-700  h-[400px]"
+            className="divide-y divide-gray-100 dark:divide-slate-700  max-h-[400px]"
             nestedScrollEnabled
             showsVerticalScrollIndicator={true}
           >
