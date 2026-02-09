@@ -13,6 +13,10 @@ export interface VendorHeaderProps {
     source?: string;
     phone?: string;
     email?: string;
+    createdByDetails?: {
+      name?: string;
+      role?: string;
+    };
   };
   onPhonePress: (phone: string) => void;
   onEmailPress: (email: string) => void;
@@ -99,6 +103,19 @@ export function VendorHeader({
         <View className="mt-1 bg-white/15 px-3 py-2 rounded-lg border border-white/20">
           <Text className="font-mono text-xs text-white" numberOfLines={1}>
             {vendor._id}
+          </Text>
+        </View>
+      </View>
+      <View className="mt-4">
+        <Text className="text-xs text-white/80 uppercase tracking-wide font-semibold">
+          Created By
+        </Text>
+        <View className="mt-1 bg-white/15 px-3 py-2 rounded-lg flex-row items-center gap-4 border border-white/20">
+          <Text className="font-mono text-xs text-white" numberOfLines={1}>
+            {`${vendor?.createdByDetails?.role || 'N/A'}  :`}
+          </Text>
+          <Text className="font-mono text-xs text-white" numberOfLines={1}>
+            {vendor?.createdByDetails?.name || 'N/A'}
           </Text>
         </View>
       </View>
