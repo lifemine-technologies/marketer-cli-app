@@ -4,9 +4,8 @@ import { AuthContextProvider } from './src/hooks/contextProviderHook';
 import { ThemeProvider, useTheme } from './src/hooks/useTheme';
 import { Router } from './src/navigation/Router';
 import { handleMutationError, handleMutationSuccess } from './src/config/axios';
-import { StatusBar, View, StyleSheet } from 'react-native';
+import { StatusBar, View, StyleSheet, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { registerLocationTrackingAppStateListener } from './src/services/locationTracking';
 import './global.css';
 
 const queryClient = new QueryClient({
@@ -27,13 +26,13 @@ const queryClient = new QueryClient({
 
 const AppContent = () => {
   const { isDark } = useTheme();
-
-  // Register location tracking app state listener
   useEffect(() => {
-    const removeListener = registerLocationTrackingAppStateListener();
-    return removeListener;
-  }, []);
-
+    const style = isDark ? 'light-content' : 'dark-content';
+    StatusBar.setBarStyle(style);
+    if (Platform.OS === 'android') {
+      StatusBar.setBackgroundColor(isDark ? '#0f172a' : '#f9fafb');
+    }
+  }, [isDark]);
   return (
     <View className={isDark ? 'dark' : ''} style={styles.root}>
       <Router />

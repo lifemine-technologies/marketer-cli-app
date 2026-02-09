@@ -1,4 +1,9 @@
-import { Platform, PermissionsAndroid, AppState, type AppStateStatus } from 'react-native';
+import {
+  Platform,
+  PermissionsAndroid,
+  AppState,
+  type AppStateStatus,
+} from 'react-native';
 import {
   startBackgroundLocationTrackingKotlin,
   stopBackgroundLocationTrackingKotlin,
@@ -20,15 +25,15 @@ export async function requestLocationPermissions(): Promise<{
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         {
           title: 'Location Permission',
-          message:
-            'This app needs your location to track your attendance.',
+          message: 'This app needs your location to track your attendance.',
           buttonNeutral: 'Ask Me Later',
           buttonNegative: 'Cancel',
           buttonPositive: 'OK',
         },
       );
 
-      const foreground = foregroundGranted === PermissionsAndroid.RESULTS.GRANTED;
+      const foreground =
+        foregroundGranted === PermissionsAndroid.RESULTS.GRANTED;
 
       // Request background location permission (Android 10+)
       let background = false;
@@ -46,7 +51,6 @@ export async function requestLocationPermissions(): Promise<{
         );
         background = backgroundGranted === PermissionsAndroid.RESULTS.GRANTED;
       } else if (foreground) {
-        // Android 9 and below: background permission is automatically granted with foreground
         background = true;
       }
 
@@ -102,19 +106,4 @@ export async function isLocationTrackingActive(): Promise<boolean> {
 
   // iOS: Not implemented yet
   return false;
-}
-
-/**
- * Register AppState listener for location tracking
- * On Android, this is a no-op since the Kotlin service handles background tracking
- * This function is kept for compatibility with existing code
- */
-export function registerLocationTrackingAppStateListener(): () => void {
-  if (Platform.OS === 'android') {
-    // No-op for Android - Kotlin service handles everything
-    return () => {};
-  }
-
-  // iOS: Would need to implement AppState listener if using JS-based tracking
-  return () => {};
 }

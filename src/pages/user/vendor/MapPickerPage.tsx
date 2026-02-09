@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -43,7 +43,7 @@ export function MapPickerPage() {
   };
 
   // Update map region when user location is available
-  React.useEffect(() => {
+  useEffect(() => {
     if (userLocation && mapRef.current) {
       const region = {
         latitude: userLocation.latitude,
@@ -112,7 +112,9 @@ export function MapPickerPage() {
               pointerEvents="none"
               style={{ zIndex: 1000 }}
             >
-              <View style={{ alignItems: 'center', justifyContent: 'flex-end' }}>
+              <View
+                style={{ alignItems: 'center', justifyContent: 'flex-end' }}
+              >
                 {/* Red Circle (Pin Head) */}
                 <View
                   style={{
