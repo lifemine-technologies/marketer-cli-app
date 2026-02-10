@@ -8,6 +8,7 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Binder
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
@@ -22,7 +23,9 @@ class LocationTrackingService : Service() {
     private var locationListener: LocationListener? = null
     private val executor = Executors.newSingleThreadExecutor()
     private var lastLocationSentTime: Long = 0
-    private val LOCATION_INTERVAL_MS = 5 * 60 * 1000L // 5 minutes
+    private val LOCATION_INTERVAL_MS = 5 * 60 * 1000L // 5 minutes (background)
+    private var periodicLocationHandler: Handler? = null
+    private var periodicLocationRunnable: Runnable? = null
     
     private var apiBaseUrl: String? = null
     private var accessToken: String? = null
@@ -39,13 +42,13 @@ class LocationTrackingService : Service() {
         super.onCreate()
         locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, createNotification())
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         apiBaseUrl = intent?.getStringExtra(EXTRA_API_BASE_URL)
         accessToken = intent?.getStringExtra(EXTRA_ACCESS_TOKEN)
-        
+        // Start foreground immediately (required API 26+)
+        startForeground(NOTIFICATION_ID, createNotification())
         startLocationUpdates()
         return START_STICKY
     }
@@ -118,16 +121,48 @@ class LocationTrackingService : Service() {
                     locationListener as LocationListener,
                     Looper.getMainLooper()
                 )
+
+                // Ensure we still send location every 5 minutes even if device is stationary
+                startPeriodicLocationCheck()
             }
         } catch (e: SecurityException) {
             e.printStackTrace()
         }
     }
 
+    private fun startPeriodicLocationCheck() {
+        periodicLocationHandler = Handler(Looper.getMainLooper())
+        periodicLocationRunnable = object : Runnable {
+            override fun run() {
+                try {
+                    val now = System.currentTimeMillis()
+                    if (now - lastLocationSentTime >= LOCATION_INTERVAL_MS) {
+                        val hasFineLocation = checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                        val hasCoarseLocation = checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+                        if (hasFineLocation || hasCoarseLocation) {
+                            val location = locationManager?.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                                ?: locationManager?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+                            location?.let {
+                                sendLocationToAPI(it)
+                                lastLocationSentTime = now
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("LocationTracking", "Periodic check error", e)
+                }
+                periodicLocationHandler?.postDelayed(this, LOCATION_INTERVAL_MS)
+            }
+        }
+        periodicLocationHandler?.post(periodicLocationRunnable!!)
+    }
+
     private fun sendLocationToAPI(location: Location) {
         executor.execute {
             try {
-                val url = URL("${apiBaseUrl}/v1/marketer/attendance/location")
+                val base = apiBaseUrl ?: return@execute
+                val url = URL("${base}/v1/marketer/attendance/location")
                 val connection = url.openConnection() as HttpURLConnection
                 
                 connection.requestMethod = "POST"
@@ -175,6 +210,9 @@ class LocationTrackingService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        periodicLocationHandler?.removeCallbacks(periodicLocationRunnable!!)
+        periodicLocationHandler = null
+        periodicLocationRunnable = null
         locationListener?.let {
             locationManager?.removeUpdates(it)
         }

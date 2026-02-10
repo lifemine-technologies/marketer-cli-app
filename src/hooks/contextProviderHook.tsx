@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AuthUserContext,
   UserProviderContext,
@@ -14,13 +14,21 @@ import {
 import { userAPI, type BasicReturnWithType } from '@/config/axios';
 import { API_ENDPOINTS } from '@/config/url';
 import { convertJwkToPem } from '../utils/crypto.util';
-import { stopBackgroundLocationTracking } from '@/services/locationTracking';
+import {
+  startBackgroundLocationTracking,
+  startForegroundLocationTracking,
+  stopForegroundLocationTracking,
+  stopBackgroundLocationTracking,
+  isLocationTrackingActive,
+} from '@/services/locationTracking';
+import { AppState } from 'react-native';
 
 export const AuthContextProvider = ({
   children,
 }: {
   children: React.ReactNode;
 }) => {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<{ accessToken: string } | null>(null);
   const [userData, setUserData] = useState<UserData | undefined>(undefined);
   const [userLoading, setUserLoading] = useState(true);
@@ -94,6 +102,44 @@ export const AuthContextProvider = ({
     }
   }, [userDetailsData]);
 
+  // Ensure tracking runs in foreground too (e.g. app reopened while still punched-in)
+  useEffect(() => {
+    const ensureTracking = async () => {
+      try {
+        const active = !!userDetailsData?.data?.attendance?.isActive;
+        if (!active) return;
+        const running = await isLocationTrackingActive();
+        if (!running) {
+          await startBackgroundLocationTracking();
+        }
+        // If app is currently active, start JS foreground tracking (10s)
+        if (AppState.currentState === 'active') {
+          await startForegroundLocationTracking();
+        }
+      } catch (e) {
+        console.warn('Failed to ensure location tracking:', e);
+      }
+    };
+    if (user?.accessToken && userDetailsData?.data) {
+      ensureTracking();
+    }
+    // only re-run when login/userDetails changes
+  }, [user?.accessToken, userDetailsData]);
+
+  // Start/stop JS foreground tracking based on app state (active vs background)
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', nextState => {
+      const active = !!userDetailsData?.data?.attendance?.isActive;
+      if (!active) return;
+      if (nextState === 'active') {
+        void startForegroundLocationTracking();
+      } else {
+        stopForegroundLocationTracking();
+      }
+    });
+    return () => sub.remove();
+  }, [userDetailsData]);
+
   // Function to login user - just trigger token check, don't set hardcoded userData
   const login = useCallback(async () => {
     const token = await getAccessToken();
@@ -106,11 +152,19 @@ export const AuthContextProvider = ({
   const logout = useCallback(async () => {
     // Stop location tracking on logout
     await stopBackgroundLocationTracking();
+    stopForegroundLocationTracking();
+
+    // Clear auth tokens
     await removeAccessToken();
     await removeRefreshToken();
+
+    // Clear in-memory user data
     setUser(null);
     setUserData(undefined);
-  }, []);
+
+    // Clear all cached server data so next login starts fresh
+    queryClient.clear();
+  }, [queryClient]);
 
   const isLoading =
     userLoading || isLoadingPublicKey || (!!user?.accessToken && isLoadingUser);

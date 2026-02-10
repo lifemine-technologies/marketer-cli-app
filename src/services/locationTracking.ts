@@ -1,19 +1,73 @@
-import {
-  Platform,
-  PermissionsAndroid,
-  AppState,
-  type AppStateStatus,
-} from 'react-native';
+import { Platform, PermissionsAndroid } from 'react-native';
+import Geolocation from '@react-native-community/geolocation';
+import { userAPI } from '@/config/axios';
+import { API_ENDPOINTS } from '@/config/url';
 import {
   startBackgroundLocationTrackingKotlin,
   stopBackgroundLocationTrackingKotlin,
   isLocationTrackingActiveKotlin,
 } from './locationTrackingKotlin';
 
-/**
- * Request location permissions (foreground and background)
- * @returns Object with foreground and background permission status
- */
+let foregroundInterval: ReturnType<typeof setInterval> | null = null;
+let isSendingForeground = false;
+const FOREGROUND_INTERVAL_MS = 5 * 60 * 1000;
+
+async function sendForegroundLocationOnce(): Promise<void> {
+  if (isSendingForeground) return;
+  isSendingForeground = true;
+  try {
+    await new Promise<void>((resolve, reject) => {
+      Geolocation.getCurrentPosition(
+        async position => {
+          try {
+            const coordinates: [number, number] = [
+              position.coords.longitude,
+              position.coords.latitude,
+            ];
+            await userAPI.post(API_ENDPOINTS.MARKETER.ATTENDANCE.LOCATION, {
+              location: { type: 'Point', coordinates },
+              accuracy: position.coords.accuracy,
+              speed:
+                typeof position.coords.speed === 'number'
+                  ? position.coords.speed
+                  : null,
+            });
+            resolve();
+          } catch (e) {
+            reject(e);
+          }
+        },
+        err => reject(err),
+        {
+          enableHighAccuracy: false,
+          timeout: 15000,
+          maximumAge: 5000,
+        },
+      );
+    });
+  } catch (e) {
+    console.warn('[ForegroundLocation] send failed:', e);
+  } finally {
+    isSendingForeground = false;
+  }
+}
+
+export async function startForegroundLocationTracking(): Promise<boolean> {
+  if (foregroundInterval) return true;
+  void sendForegroundLocationOnce();
+  foregroundInterval = setInterval(() => {
+    void sendForegroundLocationOnce();
+  }, FOREGROUND_INTERVAL_MS);
+  return true;
+}
+
+export function stopForegroundLocationTracking(): void {
+  if (foregroundInterval) {
+    clearInterval(foregroundInterval);
+    foregroundInterval = null;
+  }
+}
+
 export async function requestLocationPermissions(): Promise<{
   foreground: boolean;
   background: boolean;
@@ -60,50 +114,28 @@ export async function requestLocationPermissions(): Promise<{
       return { foreground: false, background: false };
     }
   }
-
-  // iOS: Permissions are handled via Info.plist and native prompts
-  // Return true as a placeholder - actual permission handling happens natively
   return { foreground: true, background: true };
 }
 
-/**
- * Start background location tracking
- * On Android, uses Kotlin foreground service for reliable background tracking
- * @returns Promise<boolean> - true if tracking started successfully
- */
 export async function startBackgroundLocationTracking(): Promise<boolean> {
   if (Platform.OS === 'android') {
     return await startBackgroundLocationTrackingKotlin();
   }
-
-  // iOS: Not implemented yet - would need native iOS implementation
   console.warn('Background location tracking not implemented for iOS');
   return false;
 }
 
-/**
- * Stop background location tracking
- * On Android, stops the Kotlin foreground service
- */
 export async function stopBackgroundLocationTracking(): Promise<void> {
   if (Platform.OS === 'android') {
     await stopBackgroundLocationTrackingKotlin();
     return;
   }
-
-  // iOS: Not implemented yet
   console.warn('Background location tracking not implemented for iOS');
 }
 
-/**
- * Check if location tracking is currently active
- * @returns Promise<boolean> - true if tracking is active
- */
 export async function isLocationTrackingActive(): Promise<boolean> {
   if (Platform.OS === 'android') {
     return await isLocationTrackingActiveKotlin();
   }
-
-  // iOS: Not implemented yet
   return false;
 }

@@ -66,8 +66,14 @@ export function useDashboardPage(): UseDashboardPageReturn {
   const attendance = user?.attendance;
   const isActive = attendance?.isActive || false;
 
-  const { data: todaysFollowUps = [], isLoading: isLoadingFollowUps } =
-    useTodaysFollowUps();
+  const {
+    data: todaysFollowUps = [],
+    isLoading: isLoadingFollowUpsRaw,
+    isFetching: isFetchingFollowUps,
+  } = useTodaysFollowUps();
+
+  // Treat refetching as loading so dashboard doesn't flash stale UI
+  const isLoadingFollowUps = isLoadingFollowUpsRaw || isFetchingFollowUps;
 
   // Stats grid removed; vendor/coordinator counts are fetched on their respective pages
   const stats: Array<{

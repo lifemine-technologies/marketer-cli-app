@@ -1,10 +1,7 @@
 import { NativeModules, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '@/config/url';
-
 const { LocationTrackingModule } = NativeModules;
-
-const ACCESS_TOKEN_KEY = 'accessToken';
 
 export const startBackgroundLocationTrackingKotlin =
   async (): Promise<boolean> => {
@@ -14,15 +11,15 @@ export const startBackgroundLocationTrackingKotlin =
     }
 
     try {
-      const accessToken = await AsyncStorage.getItem(ACCESS_TOKEN_KEY);
+      const accessToken = await AsyncStorage.getItem('accessToken');
       const apiBaseUrl = API_CONFIG.BASE_URL;
 
       if (!accessToken || !apiBaseUrl) {
         console.error('Missing access token or API base URL');
         return false;
       }
+      // Restart service to ensure fresh token/baseUrl
       await LocationTrackingModule.stopTracking();
-
       await LocationTrackingModule.startTracking(apiBaseUrl, accessToken);
       return true;
     } catch (error) {

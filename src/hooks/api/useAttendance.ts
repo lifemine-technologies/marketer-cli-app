@@ -3,7 +3,9 @@ import { userAPI, type BasicReturnWithType } from '@/config/axios';
 import { API_ENDPOINTS } from '@/config/url';
 import {
   startBackgroundLocationTracking,
+  startForegroundLocationTracking,
   stopBackgroundLocationTracking,
+  stopForegroundLocationTracking,
 } from '@/services/locationTracking';
 
 type Payload = {
@@ -32,6 +34,8 @@ export const useAttendance = () => {
             'Background location could not start. Keep app open and try again.',
           );
         }
+        // Start high-frequency foreground tracking (JS)
+        await startForegroundLocationTracking();
       }
     },
     onError: (error: any) => {
@@ -50,6 +54,8 @@ export const useAttendance = () => {
         queryClient.invalidateQueries({ queryKey: ['userDetails'] });
         // Stop background location tracking
         await stopBackgroundLocationTracking();
+        // Stop foreground tracking (JS)
+        stopForegroundLocationTracking();
       }
     },
     onError: (error: any) => {
